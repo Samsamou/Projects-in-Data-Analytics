@@ -6,3 +6,24 @@ Finishing the logistic regression. I want to focus now on another model. Model t
 - Support Vector Machines
 - Neural Networks
 - k-Nearest Neighbors
+
+meeting du 05.05
+on doit utiliser tous les modèles
+on veut lui montrer qu'on a essayé toutes les pistes et on a choisit la meilleure
+les clients connaissent les modèles; lorsqu'il est le client il connaît la base de statistique
+
+Questions:
+Caret peut nous faire la recherche des meilleures paramètres (pour random forest, etc...)
+Faut faire gaffe parce que les données ne sont pas équilibrées
+caret sampling: !!!down!!!: on va le pousser à choisir un peu plus des mauvais clients pour avoir un meilleur équilibre entre les 2
+Table de classification: ce qu'on regarde c'est le pourcentage correct, mais c'est biaisé parce qu'on ne regarde pas les faux positifs et faux négatifs: il faut faire attention (sensibilité, spécificité)
+Analyse de sensibilisé à faire
+Lui dire quelles sont les variables les plus importantes --> business context à améliorer
+
+Soit on sélectionne les variables importantes dès le début, et on garde les plus pertinentes puis on fait tous les modèles
+Soit on prend tout, et il fait une analyse de chaque modèle différent, puis on fait une métaananalyse de l'ensemble des modèles et on prend les variables qui nous intéresse le plus
+
+Pas de stratégie globale en stratégi!!
+Méthode dépend de la tâche à résoudre et des données / variables: les 2 méthodes sont bonnes / mauvais 
+
+Ce qu'on a fait du statut martial c'est bon! (les grouper c'est ok)
