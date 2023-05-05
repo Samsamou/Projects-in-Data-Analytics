@@ -4,6 +4,9 @@ author: "Alexander Liden & Samy Maurer"
 date: "2023-04-09"
 output: html_document
 ---
+```{r, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
 
 ```{r setup, include=FALSE}
 library(readxl)
@@ -17,7 +20,7 @@ library(shiny)
 library(knitr)
 library(stats)
 library(psych)
-install.packages("car")
+#install.packages("car")
 library(car)
 ```
 
