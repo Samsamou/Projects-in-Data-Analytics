@@ -26,7 +26,7 @@ library(car)
 
 # 1 Introduction 
 
-In the context of our course in Project in Data Analytics for Decision Making, we will perform an complete analysis of the dataset GermanCredit.csv that we will rename later "Bank Credit". First of all, we will try to understand every variable of this dataset and its trend by using multiple statistical tools. Secondly, we will 
+In the context of our course in Project in Data Analytics for Decision Making, we will perform an complete analysis of the dataset GermanCredit.csv that we will rename later "Bank Credit". First of all, we will try to understand every variable of this dataset and its trend by using multiple statistical tools. Secondly, we will prepare the data for
 
 # 2 Exploring the Data
 
@@ -82,7 +82,8 @@ sapply(credit_data, function(x) sum(is.na(x)))
 cat("\n")
 ```
 There is a problem with `AGE` : There are 14 missing values in this variable which leads us to a question : 
-Should we deleate the observations with missing values or should we deal with it in a different manner ? 
+
+Should we delete the observations with missing values or should we deal with it in a different manner ? 
 
 Let us see the ones with the missing information about the age. 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
@@ -102,10 +103,11 @@ Thanks to our summary variable we observe 2 other problem :
 - `MAKE_SINGLE` is a binary variable but has a maximum value of 2
 - `GUARANTOR` is a binary variable but has a minimum value of -1 
 Obviously, we can guess that the values in those rows are incorrect which leads to another important question : 
-How would we modify those values ? 
 
+How should we modify those values ? 
 
 Let us now make a frequency histogram
+
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 #Histogram of frequency for every variable 
 par(mfrow=c(3,3)) # set up the layout of the plots
@@ -113,9 +115,9 @@ for (i in 1:32) {
   hist(credit_data[,i], main=colnames(credit_data)[i], xlab="", col="lightblue")
 }
 ```
-Those frequency histogram confirms us the problems with had earlier with our 2 variables `MAKE_SINGLE`and `GUARANTOR`. 
+Those frequency histogram confirms us the problems with had earlier with our 2 variables `MALE_SINGLE`and `GUARANTOR`. 
 
-So what to do ? As the missing/wrond values appears a few time in our dataset, we want to drop them and check if everything is alright now
+So what to do ? As the missing/wrong values appears a few time in our dataset, we want to drop them and check if everything is alright now
 
 ```{r}
 # Drop rows with missing values in AGE
@@ -208,7 +210,7 @@ credit_data <- credit_data %>%
 
 ```
 
-# 4 Perfrom a Linear Regression 
+# 4 Performing the Linear Regression 
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 # remove the OBS column from the credit_data dataframe
@@ -220,12 +222,18 @@ model <- lm(RESPONSE ~ ., data = credit_data_noobs)
 # display the model summary
 summary(model)
 ```
-I am gonna perfrom a Multicolleniarity test in order to see of there is some problems in my variable. 
+
+We will now run a multicollinearity test to see if there are any problems with my variable. 
 ```{r}
 vif_model <- vif(model)
-vif_model
+print(vif_model)
 ```
-As we can see, there is no problem with the variables as all the values are below 5.
+As we can see, there is no problem with the variables except for `OWN_RES`, which has a value above 5. Let's see the updated model:
+
+```{r}
+vif_model <- update(model, . ~ . - OWN_RES)
+summary(vif_model)
+```
 
 5. Logistic regression 
 
@@ -273,9 +281,9 @@ test_preds <- ifelse(test_probs > 0.5, 1, 0)
 accuracy <- mean(test_preds == test_data$RESPONSE)
 cat("Accuracy:", accuracy, "\n")
 ```
-We can see that even after perfoming a stepwise regression, there is no difference at all in the accuracy of the model. 
+We can see that even after running a stepwise regression, there is no difference in the accuracy of the model. 
 
-We are computing now the AUC for the 2 models : 
+We now calculate the AUC for the 2 models: 
 ```{r}
 library(pROC)
 # We have to transfrom it in factors as the pROC takes only factors
@@ -299,7 +307,7 @@ logistic_model_auc
 stepwise_model_auc
 
 ```
- We are going to perform a cross-validation : 
+We are going to perform a cross-validation : 
 
 ```{r}
 library(caret)
@@ -334,5 +342,5 @@ stepwise_formula <- RESPONSE ~ CHK_ACCT + DURATION + HISTORY + NEW_CAR + USED_CA
 stepwise_cv_accuracy <- cross_validation(stepwise_formula, credit_data)
 print(paste("Stepwise Logistic Regression CV Accuracy:", stepwise_cv_accuracy))
 ```
-The values for AUC are both above 0.75 making them fair to predict a good or bad credit. The logistic model has a higher ability to correctly predict rather than the stepwise one but the difference is not that huge. The stepwise has an AIC of 657.15 while the the normal logistic regression has a value of 675.23 which is not that of a big difference. As they have the same accuracy, we can easily say that using simple logistic or a stepwise one does not make that of a difference. The small improve of accuracy is not worth the comèlexity. 
-The cross-validation accuracy for the logistic regression model is 0.7632, which is slightly higher than the 0.75 accuracy WE got earlier with a single train-test split. This indicates that the logistic regression model is somewhat consistent in its performance across different subsets of the data, and we can conlude the same for the stepwise one 
+The values for AUC are both above 0.75, making them fair to predict good or bad credit. The logistic model has a higher ability to correctly predict than the stepwise, but the difference is not that big. The stepwise has an AIC of 657.15 while the normal logistic regression has a value of 675.23 which is not that of a big difference. Since they have the same accuracy, we can easily say that using a simple logistic or a stepwise does not make that much of a difference. The small improvement in accuracy is not worth the complexity. 
+The cross-validation accuracy for the logistic regression model is 0.7632, which is slightly higher than the 0.75 accuracy we obtained earlier with a single train-test split. This indicates that the logistic regression model is somewhat consistent in its performance across different subsets of the data, and we can conclude the same for the stepwise model. 
