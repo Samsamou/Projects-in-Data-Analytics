@@ -5,7 +5,7 @@ date: "2023-04-09"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 library(readxl)
 library(tidyr)
 library (tidyverse)
@@ -446,5 +446,141 @@ custom_predictions <- factor(custom_predictions, levels = levels(test_data$RESPO
 cm_custom <- confusionMatrix(custom_predictions, test_data$RESPONSE)
 print(cm_custom)
 
+
+```
+## LDA
+
+```{r}
+# Train the LDA model using caret
+set.seed(42)
+lda_model <- train(RESPONSE ~ ., data = train_data, method = "lda", trControl = ctrl)
+
+# Print the model
+print(lda_model)
+
+# Make predictions on the test dataset
+predictions_lda <- predict(lda_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_lda <- confusionMatrix(predictions_lda, test_data$RESPONSE)
+print(cm_lda)
+
+```
+
+## QDA
+```{r}
+# Load the MASS library
+library(MASS)
+
+# Fit the QDA model with regularization
+set.seed(42)
+qda_model <- qda(RESPONSE ~ ., data = train_data, prior = c(0.5, 0.5), k = 0.5)  # k is the regularization parameter
+
+# Make predictions on the test dataset
+predictions_qda <- predict(qda_model, test_data)$class
+
+# Evaluate the model using a confusion matrix
+cm_qda <- confusionMatrix(as.factor(predictions_qda), as.factor(test_data$RESPONSE))
+
+# Print the confusion matrix
+print(cm_qda)
+
+```
+
+## CART
+
+```{r}
+# Train the CART model using caret
+set.seed(42)
+cart_model <- train(RESPONSE ~ ., data = train_data, method = "rpart", trControl = ctrl)
+
+# Print the model
+print(cart_model)
+
+# Make predictions on the test dataset
+predictions_cart <- predict(cart_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_cart <- confusionMatrix(predictions_cart, test_data$RESPONSE)
+print(cm_cart)
+
+```
+
+## Neural Network
+```{r}
+# Train the Neural Network model using caret
+set.seed(42)
+nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl, linout = FALSE, trace = FALSE)
+
+# Print the model
+print(nn_model)
+
+# Make predictions on the test dataset
+predictions_nn <- predict(nn_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
+print(cm_nn)
+
+```
+
+## Support vector (SVM)
+```{r}
+# Train the SVM model using caret
+set.seed(42)
+svm_model <- train(RESPONSE ~ ., data = train_data, method = "svmRadial", trControl = ctrl)
+
+# Print the model
+print(svm_model)
+
+# Make predictions on the test dataset
+predictions_svm <- predict(svm_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_svm <- confusionMatrix(predictions_svm, test_data$RESPONSE)
+print(cm_svm)
+
+```
+Please note that these models require that your data is properly preprocessed (scaling for Neural Networks and SVMs, handling of missing data, etc.). Also, remember that tuning the hyperparameters of these models (like the complexity parameter in CART, the number of hidden nodes in Neural Networks or the cost parameter in SVMs) is crucial for their performance. In the provided code, the 'train' function will use default hyperparameters and perform a basic grid search for hyperparameter tuning. However, depending on your dataset and problem, you might want to tune these hyperparameters more carefully.
+
+## Gradient Boosting (GBM)
+```{r}
+# Load the required library
+library(gbm)
+
+# Train the GBM model using caret
+set.seed(42)
+gbm_model <- train(RESPONSE ~ ., data = train_data, method = "gbm", trControl = ctrl)
+
+# Print the model
+print(gbm_model)
+
+# Make predictions on the test dataset
+predictions_gbm <- predict(gbm_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_gbm <- confusionMatrix(predictions_gbm, test_data$RESPONSE)
+print(cm_gbm)
+
+```
+
+## Extreme Gradiant Boosting (XGBoost)
+```{r, warning=FALSE, message=FALSE}
+# Load the required library
+library(xgboost)
+
+# Train the XGBoost model using caret
+set.seed(42)
+xgb_model <- train(RESPONSE ~ ., data = train_data, method = "xgbTree", trControl = ctrl)
+
+# Print the model
+print(xgb_model)
+
+# Make predictions on the test dataset
+predictions_xgb <- predict(xgb_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_xgb <- confusionMatrix(predictions_xgb, test_data$RESPONSE)
+print(cm_xgb)
 
 ```
