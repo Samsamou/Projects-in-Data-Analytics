@@ -27,3 +27,17 @@ Pas de stratégie globale en stratégi!!
 Méthode dépend de la tâche à résoudre et des données / variables: les 2 méthodes sont bonnes / mauvais 
 
 Ce qu'on a fait du statut martial c'est bon! (les grouper c'est ok)
+
+
+Les modèles à faire : 
+- LDA
+- QDA
+- CART (Classification and regression tree)
+- Neural Network
+- Suppport Vector (polynomial kernel,  radial kernel
+- Boosting
+- Extreme Gradiant Boosting
+
+Modèle à améliorer:
+- Logistic regression 
+. Random Forest
