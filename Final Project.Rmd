@@ -4,9 +4,6 @@ author: "Alexander Liden & Samy Maurer"
 date: "2023-04-09"
 output: html_document
 ---
-```{r, include=FALSE}
-knitr::opts_chunk$set(warning = FALSE, message = FALSE)
-```
 
 ```{r setup, include=FALSE}
 library(readxl)
@@ -20,13 +17,13 @@ library(shiny)
 library(knitr)
 library(stats)
 library(psych)
-#install.packages("car")
+install.packages("car")
 library(car)
 ```
 
 # 1 Introduction 
 
-In the context of our course in Project in Data Analytics for Decision Making, we will perform an complete analysis of the dataset GermanCredit.csv that we will rename later "Bank Credit". First of all, we will try to understand every variable of this dataset and its trend by using multiple statistical tools. Secondly, we will prepare the data for
+In the context of our course in Project in Data Analytics for Decision Making, we will perform an complete analysis of the dataset GermanCredit.csv that we will rename later "Bank Credit". First of all, we will try to understand every variable of this dataset and its trend by using multiple statistical tools. Secondly, we will 
 
 # 2 Exploring the Data
 
@@ -82,8 +79,7 @@ sapply(credit_data, function(x) sum(is.na(x)))
 cat("\n")
 ```
 There is a problem with `AGE` : There are 14 missing values in this variable which leads us to a question : 
-
-Should we delete the observations with missing values or should we deal with it in a different manner ? 
+Should we deleate the observations with missing values or should we deal with it in a different manner ? 
 
 Let us see the ones with the missing information about the age. 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
@@ -103,11 +99,10 @@ Thanks to our summary variable we observe 2 other problem :
 - `MAKE_SINGLE` is a binary variable but has a maximum value of 2
 - `GUARANTOR` is a binary variable but has a minimum value of -1 
 Obviously, we can guess that the values in those rows are incorrect which leads to another important question : 
+How would we modify those values ? 
 
-How should we modify those values ? 
 
 Let us now make a frequency histogram
-
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 #Histogram of frequency for every variable 
 par(mfrow=c(3,3)) # set up the layout of the plots
@@ -115,9 +110,9 @@ for (i in 1:32) {
   hist(credit_data[,i], main=colnames(credit_data)[i], xlab="", col="lightblue")
 }
 ```
-Those frequency histogram confirms us the problems with had earlier with our 2 variables `MALE_SINGLE`and `GUARANTOR`. 
+Those frequency histogram confirms us the problems with had earlier with our 2 variables `MAKE_SINGLE`and `GUARANTOR`. 
 
-So what to do ? As the missing/wrong values appears a few time in our dataset, we want to drop them and check if everything is alright now
+So what to do ? As the missing/wrond values appears a few time in our dataset, we want to drop them and check if everything is alright now
 
 ```{r}
 # Drop rows with missing values in AGE
@@ -210,7 +205,7 @@ credit_data <- credit_data %>%
 
 ```
 
-# 4 Performing the Linear Regression 
+# 4 Perfrom a Linear Regression 
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 # remove the OBS column from the credit_data dataframe
@@ -222,18 +217,12 @@ model <- lm(RESPONSE ~ ., data = credit_data_noobs)
 # display the model summary
 summary(model)
 ```
-
-We will now run a multicollinearity test to see if there are any problems with my variable. 
+I am gonna perfrom a Multicolleniarity test in order to see of there is some problems in my variable. 
 ```{r}
 vif_model <- vif(model)
-print(vif_model)
+vif_model
 ```
-As we can see, there is no problem with the variables except for `OWN_RES`, which has a value above 5. Let's see the updated model:
-
-```{r}
-vif_model <- update(model, . ~ . - OWN_RES)
-summary(vif_model)
-```
+As we can see, there is no problem with the variables as all the values are below 5.
 
 5. Logistic regression 
 
@@ -281,9 +270,9 @@ test_preds <- ifelse(test_probs > 0.5, 1, 0)
 accuracy <- mean(test_preds == test_data$RESPONSE)
 cat("Accuracy:", accuracy, "\n")
 ```
-We can see that even after running a stepwise regression, there is no difference in the accuracy of the model. 
+We can see that even after perfoming a stepwise regression, there is no difference at all in the accuracy of the model. 
 
-We now calculate the AUC for the 2 models: 
+We are computing now the AUC for the 2 models : 
 ```{r}
 library(pROC)
 # We have to transfrom it in factors as the pROC takes only factors
@@ -307,7 +296,7 @@ logistic_model_auc
 stepwise_model_auc
 
 ```
-We are going to perform a cross-validation : 
+ We are going to perform a cross-validation : 
 
 ```{r}
 library(caret)
@@ -342,5 +331,120 @@ stepwise_formula <- RESPONSE ~ CHK_ACCT + DURATION + HISTORY + NEW_CAR + USED_CA
 stepwise_cv_accuracy <- cross_validation(stepwise_formula, credit_data)
 print(paste("Stepwise Logistic Regression CV Accuracy:", stepwise_cv_accuracy))
 ```
-The values for AUC are both above 0.75, making them fair to predict good or bad credit. The logistic model has a higher ability to correctly predict than the stepwise, but the difference is not that big. The stepwise has an AIC of 657.15 while the normal logistic regression has a value of 675.23 which is not that of a big difference. Since they have the same accuracy, we can easily say that using a simple logistic or a stepwise does not make that much of a difference. The small improvement in accuracy is not worth the complexity. 
-The cross-validation accuracy for the logistic regression model is 0.7632, which is slightly higher than the 0.75 accuracy we obtained earlier with a single train-test split. This indicates that the logistic regression model is somewhat consistent in its performance across different subsets of the data, and we can conclude the same for the stepwise model. 
+The values for AUC are both above 0.75 making them fair to predict a good or bad credit. The logistic model has a higher ability to correctly predict rather than the stepwise one but the difference is not that huge. The stepwise has an AIC of 657.15 while the the normal logistic regression has a value of 675.23 which is not that of a big difference. As they have the same accuracy, we can easily say that using simple logistic or a stepwise one does not make that of a difference. The small improve of accuracy is not worth the comèlexity. 
+The cross-validation accuracy for the logistic regression model is 0.7632, which is slightly higher than the 0.75 accuracy WE got earlier with a single train-test split. This indicates that the logistic regression model is somewhat consistent in its performance across different subsets of the data, and we can conlude the same for the stepwise one 
+
+
+
+## RANDOM FOREST 
+
+```{r}
+library(randomForest)
+library(caret)
+library(gmodels)
+
+#Transform into factor 
+credit_data$RESPONSE <- factor(credit_data$RESPONSE, levels = c(0, 1))
+
+
+# Split the data into training and testing sets
+set.seed(42)
+train_indices <- sample(1:nrow(credit_data), 0.7 * nrow(credit_data))
+train_data <- credit_data[train_indices, ]
+test_data <- credit_data[-train_indices, ]
+
+# Set up the trainControl object
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, verboseIter = FALSE, sampling = "down")
+
+# Train the random forest model using caret
+set.seed(42)
+rf_model <- train(RESPONSE ~ ., data = train_data, method = "rf", trControl = ctrl)
+
+# Print the model
+print(rf_model)
+
+# Make predictions on the test dataset
+predictions <- predict(rf_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm <- confusionMatrix(predictions, test_data$RESPONSE)
+print(cm)
+```
+Ici on prends des hyperparameters pour trouver les meilleurs
+```{r}
+# Define the search grid for hyperparameters
+tune_grid <- expand.grid(mtry = seq(2, 29, 2))
+
+# Set up the training control with cross-validation and repeated sampling
+train_control <- trainControl(method = "repeatedcv",
+                              number = 10,
+                              repeats = 3,
+                              sampling = "down",
+                              search = "grid")
+
+# Train the Random Forest model with hyperparameter tuning
+tuned_rf_model <- train(RESPONSE ~ .,
+                        data = train_data,
+                        method = "rf",
+                        metric = "Accuracy",
+                        trControl = train_control,
+                        tuneGrid = tune_grid)
+
+# Print the results
+print(tuned_rf_model)
+
+# Obtain the best model
+best_rf_model <- tuned_rf_model
+
+# Make predictions on the test dataset
+predictions <- predict(best_rf_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm <- confusionMatrix(predictions, test_data$RESPONSE)
+print(cm)
+```
+The tuned random forest model achieved an accuracy of 0.7061 on the test dataset, with the best value for mtry = 6.
+The confusion matrix shows that out of all predictions made, 59 were true positives (actual bad customers predicted as bad), 150 were true negatives (actual good customers predicted as good), 66 were false positives (actual good customers predicted as bad), and 21 were false negatives (actual bad customers predicted as good).
+The model's sensitivity (true positive rate) is 0.7375, and the specificity (true negative rate) is 0.6944. These values indicate how well the model identifies bad customers and good customers, respectively.
+The positive predictive value (PPV) is 0.4720, and the negative predictive value (NPV) is 0.8772. These values indicate the proportion of true positive predictions among all positive predictions and the proportion of true negative predictions among all negative predictions, respectively.
+The balanced accuracy is 0.7160, which is the average of sensitivity and specificity.
+In comparison with the previous random forest model without hyperparameter tuning, the accuracy is slightly lower. However, this difference could be due to the randomness involved in the training process and the random forest algorithm.
+
+
+I am gonna try now to adjust the class weight 
+
+```{r}
+# Convert the RESPONSE variable to a factor
+train_data$RESPONSE <- as.factor(train_data$RESPONSE)
+test_data$RESPONSE <- as.factor(test_data$RESPONSE)
+
+# Define class weights
+class_weights <- c(2, 1) # 2 for bad customers (class '0') and 1 for good customers (class '1')
+
+# Train the Random Forest model with class weights
+weighted_rf_model <- train(RESPONSE ~ .,
+                           data = train_data,
+                           method = "rf",
+                           metric = "Accuracy",
+                           trControl = train_control,
+                           tuneGrid = tune_grid,
+                           weights = ifelse(train_data$RESPONSE == '0', class_weights[1], class_weights[2]))
+
+# Obtain predicted probabilities for the test dataset
+predicted_prob <- predict(weighted_rf_model, newdata = test_data, type = "prob")
+
+# Define the custom threshold
+threshold <- 0.3
+
+# Classify customers based on the custom threshold
+custom_predictions <- ifelse(predicted_prob[, "0"] > threshold, "0", "1")
+
+# Convert custom_predictions to a factor with the same levels as test_data$RESPONSE
+custom_predictions <- factor(custom_predictions, levels = levels(test_data$RESPONSE))
+
+# Evaluate the model using a confusion matrix with custom predictions
+cm_custom <- confusionMatrix(custom_predictions, test_data$RESPONSE)
+print(cm_custom)
+
+
+```
