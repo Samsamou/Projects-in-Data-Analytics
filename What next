@@ -7,7 +7,7 @@ Finishing the logistic regression. I want to focus now on another model. Model t
 - Neural Networks
 - k-Nearest Neighbors
 
-meeting du 05.05
+Meeting du 05.05
 on doit utiliser tous les modèles
 on veut lui montrer qu'on a essayé toutes les pistes et on a choisit la meilleure
 les clients connaissent les modèles; lorsqu'il est le client il connaît la base de statistique
@@ -41,3 +41,31 @@ Les modèles à faire :
 Modèle à améliorer:
 - Logistic regression 
 . Random Forest
+
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+Meeting du 26.05
+On va devoir faire du down-sampling plutôt que tu up-sampling
+
+CV, CM, même chose pour tous les modèles ... caret choisit automatiquement tous les bons paramètres!
+Il faut regarder le graph: partie droite s'améliore et ça vaut le coup d'aller plus loin
+C'est un bon départ! 
+
+Ensuite, on veut éviter de donner les crédits à de mauvais clients (sensitivité plutôt que spécificité ou inverse, à voir comment on a codé le reste)
+Il ne faut pas seulement regarder l'accuracy!!
+
+Enlever les variables pas pertinentes: dès le début ou à chaque modèle (méthodes en elles-mêmes qui vont épurer) différences minimes entre les 2 méthodes
+
+XGBoost: normal que ça prenne du temps
+Tout le monde dit que ça marche bien, mais c'est pas certain que ça marche de ouf
+
+Bagging: Random Forest, en parallèle (composite)
+Boosting: En série, étape par étape où on améliore le résultat
+
+Présentation (20min): 
+présentation du problème
+analyse exploratoire
+passer par tout les modèles (tableau pour tout résumer)
+pas trop de graphs
+c'est le modèle X qui nous donne la meilleure sensitivité / spécificité
+dire ce qu'on pourrait faire pour aller plus loin
