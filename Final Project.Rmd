@@ -224,7 +224,7 @@ vif_model
 ```
 As we can see, there is no problem with the variables as all the values are below 5.
 
-5. Logistic regression 
+#5 Logistic regression 
 
 ```{r}
 # Load the necessary library
@@ -322,6 +322,7 @@ logistic_formula <- RESPONSE ~ .
 logistic_cv_accuracy <- cross_validation(logistic_formula, credit_data)
 print(paste("Logistic Regression CV Accuracy:", logistic_cv_accuracy))
 
+#A CHANGER
 # Perform cross-validation for the stepwise logistic regression model
 stepwise_formula <- RESPONSE ~ CHK_ACCT + DURATION + HISTORY + NEW_CAR + USED_CAR +
                     FURNITURE + RADIO.TV + EDUCATION + RETRAINING + AMOUNT + SAV_ACCT +
@@ -333,6 +334,15 @@ print(paste("Stepwise Logistic Regression CV Accuracy:", stepwise_cv_accuracy))
 ```
 The values for AUC are both above 0.75 making them fair to predict a good or bad credit. The logistic model has a higher ability to correctly predict rather than the stepwise one but the difference is not that huge. The stepwise has an AIC of 657.15 while the the normal logistic regression has a value of 675.23 which is not that of a big difference. As they have the same accuracy, we can easily say that using simple logistic or a stepwise one does not make that of a difference. The small improve of accuracy is not worth the comèlexity. 
 The cross-validation accuracy for the logistic regression model is 0.7632, which is slightly higher than the 0.75 accuracy WE got earlier with a single train-test split. This indicates that the logistic regression model is somewhat consistent in its performance across different subsets of the data, and we can conlude the same for the stepwise one 
+```{r}
+#Let's drop the columns we don't need
+credit_data <- credit_data %>%
+  select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, FURNITURE, AMOUNT, SAV_ACCT, INSTALL_RATE, GUARANTOR, PRESENT_RESIDENT, REAL_ESTATE, OTHER_INSTALL, OWN_RES, TELEPHONE, FOREIGN, MARITAL_STATUS)
+
+#we deleted telephone and foreign because ...... and we go from 30 variables to 18
+
+head(credit_data)
+```
 
 ```{r}
 # Convert RESPONSE to a factor and adjust the levels
@@ -536,6 +546,30 @@ cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
 print(cm_nn)
 
 ```
+As we can see, the accuracy of the model is mediocre at best. With 0.71, and a sensitivity of 0.62, the model is essentially tossing a coin-flip for every bad client. What if we tried upsampling?
+
+```{r}
+ctrl <- trainControl(method = "cv", 
+                     number = 10, 
+                     sampling = "up",
+                     savePredictions = "final",
+                     classProbs = TRUE)
+
+# Train the Neural Network model using caret
+set.seed(42)
+nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl, linout = FALSE, trace = FALSE)
+
+# Print the model
+print(nn_model)
+
+# Make predictions on the test dataset
+predictions_nn <- predict(nn_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
+print(cm_nn)
+```
+The results are now more satisfactory and the confusion matrix shows us an improvement of almost 10%, which is really good. Now let's do it with fewer variables by making a stepwise selection:
 
 ## Support vector (SVM)
 ```{r}
