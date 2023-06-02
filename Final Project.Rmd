@@ -334,7 +334,20 @@ print(paste("Stepwise Logistic Regression CV Accuracy:", stepwise_cv_accuracy))
 The values for AUC are both above 0.75 making them fair to predict a good or bad credit. The logistic model has a higher ability to correctly predict rather than the stepwise one but the difference is not that huge. The stepwise has an AIC of 657.15 while the the normal logistic regression has a value of 675.23 which is not that of a big difference. As they have the same accuracy, we can easily say that using simple logistic or a stepwise one does not make that of a difference. The small improve of accuracy is not worth the comèlexity. 
 The cross-validation accuracy for the logistic regression model is 0.7632, which is slightly higher than the 0.75 accuracy WE got earlier with a single train-test split. This indicates that the logistic regression model is somewhat consistent in its performance across different subsets of the data, and we can conlude the same for the stepwise one 
 
+```{r}
+# Convert RESPONSE to a factor and adjust the levels
+train_data$RESPONSE <- as.factor(train_data$RESPONSE)
+levels(train_data$RESPONSE) <- c("Class0", "Class1")
 
+test_data$RESPONSE <- as.factor(test_data$RESPONSE)
+levels(test_data$RESPONSE) <- c("Class0", "Class1")
+# Set up the training control with down-sampling
+ctrl <- trainControl(method = "cv", 
+                     number = 10, 
+                     sampling = "down",
+                     savePredictions = "final",
+                     classProbs = TRUE)
+```
 
 ## RANDOM FOREST 
 
