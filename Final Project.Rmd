@@ -533,6 +533,8 @@ print(cm_cart)
 ```{r}
 # Train the Neural Network model using caret
 set.seed(42)
+ctrl <- trainControl(sampling = "down",
+                     savePredictions = "final")
 nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl, linout = FALSE, trace = FALSE)
 
 # Print the model
@@ -546,30 +548,7 @@ cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
 print(cm_nn)
 
 ```
-As we can see, the accuracy of the model is mediocre at best. With 0.71, and a sensitivity of 0.62, the model is essentially tossing a coin-flip for every bad client. What if we tried upsampling?
-
-```{r}
-ctrl <- trainControl(method = "cv", 
-                     number = 10, 
-                     sampling = "up",
-                     savePredictions = "final",
-                     classProbs = TRUE)
-
-# Train the Neural Network model using caret
-set.seed(42)
-nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl, linout = FALSE, trace = FALSE)
-
-# Print the model
-print(nn_model)
-
-# Make predictions on the test dataset
-predictions_nn <- predict(nn_model, test_data)
-
-# Evaluate the model using a confusion matrix
-cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
-print(cm_nn)
-```
-The results are now more satisfactory and the confusion matrix shows us an improvement of almost 10%, which is really good. Now let's do it with fewer variables by making a stepwise selection:
+As we can see, the accuracy of the model is mediocre at best. With 0.71, and a sensitivity of 0.62, the model is essentially tossing a coin-flip for every bad client.
 
 ## Support vector (SVM)
 ```{r}
