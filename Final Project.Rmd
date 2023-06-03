@@ -343,6 +343,14 @@ credit_data <- credit_data %>%
 
 head(credit_data)
 ```
+```{r}
+# Load the necessary library
+# Split the data into training and testing sets
+set.seed(123) # For reproducibility
+split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
+train_data <- credit_data[split, ]
+test_data <- credit_data[!split, ]
+```
 
 ```{r}
 # Convert RESPONSE to a factor and adjust the levels
@@ -476,57 +484,47 @@ print(cm_custom)
 ```{r}
 # Train the LDA model using caret
 set.seed(42)
-lda_model <- train(RESPONSE ~ ., data = train_data, method = "lda", trControl = ctrl)
+
+# Train the LDA model with down-sampling
+lda_model <- train(RESPONSE ~ . ,
+                   data = train_data,
+                   method = "lda",
+                   trControl = ctrl)
+
 
 # Print the model
 print(lda_model)
 
-# Make predictions on the test dataset
+#Make predictions on the test dataset
 predictions_lda <- predict(lda_model, test_data)
 
 # Evaluate the model using a confusion matrix
 cm_lda <- confusionMatrix(predictions_lda, test_data$RESPONSE)
 print(cm_lda)
-
 ```
 
 ## QDA
 ```{r}
 # Load the MASS library
-library(MASS)
 
-# Fit the QDA model with regularization
 set.seed(42)
-qda_model <- qda(RESPONSE ~ ., data = train_data, prior = c(0.5, 0.5), k = 0.5)  # k is the regularization parameter
 
-# Make predictions on the test dataset
-predictions_qda <- predict(qda_model, test_data)$class
+# Train the LDA model with down-sampling
+qda_model <- train(RESPONSE ~ . ,
+                   data = train_data,
+                   method = "qda",
+                   trControl = ctrl)
 
-# Evaluate the model using a confusion matrix
-cm_qda <- confusionMatrix(as.factor(predictions_qda), as.factor(test_data$RESPONSE))
-
-# Print the confusion matrix
-print(cm_qda)
-
-```
-
-## CART
-
-```{r}
-# Train the CART model using caret
-set.seed(42)
-cart_model <- train(RESPONSE ~ ., data = train_data, method = "rpart", trControl = ctrl)
 
 # Print the model
-print(cart_model)
+print(qda_model)
 
-# Make predictions on the test dataset
-predictions_cart <- predict(cart_model, test_data)
+#Make predictions on the test dataset
+predictions_qda <- predict(qda_model, test_data)
 
 # Evaluate the model using a confusion matrix
-cm_cart <- confusionMatrix(predictions_cart, test_data$RESPONSE)
-print(cm_cart)
-
+cm_qda <- confusionMatrix(predictions_qda, test_data$RESPONSE)
+print(cm_qda)
 ```
 
 ## Neural Network
