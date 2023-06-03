@@ -505,11 +505,8 @@ print(cm_lda)
 
 ## QDA
 ```{r}
-# Load the MASS library
-
-set.seed(42)
-
 # Train the LDA model with down-sampling
+set.seed(42)
 qda_model <- train(RESPONSE ~ . ,
                    data = train_data,
                    method = "qda",
@@ -525,6 +522,80 @@ predictions_qda <- predict(qda_model, test_data)
 # Evaluate the model using a confusion matrix
 cm_qda <- confusionMatrix(predictions_qda, test_data$RESPONSE)
 print(cm_qda)
+```
+Lets try to give more weight ti bad customers.
+```{r}
+set.seed(42)
+# Determine class weights
+class_weights <- ifelse(train_data$RESPONSE == "Class0", 1, 0.5)
+
+# Train the QDA model with class weights
+qda_model <- train(RESPONSE ~ . ,
+                   data = train_data,
+                   method = "qda",
+                   weights = class_weights,
+                   trControl = ctrl)
+
+# Print the model
+print(qda_model)
+
+# Make predictions on the test dataset
+predictions_qda <- predict(qda_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_qda <- confusionMatrix(predictions_qda, test_data$RESPONSE)
+print(cm_qda)
+
+
+```
+It did not change anything so we have prolly optimized it.
+
+## CART
+
+```{r}
+# Train the CART model using caret
+set.seed(42)
+cart_model <- train(RESPONSE ~ ., data = train_data, method = "rpart", trControl = ctrl)
+
+# Print the model
+print(cart_model)
+summary(cart_model)
+
+# Make predictions on the test dataset
+predictions_cart <- predict(cart_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_cart <- confusionMatrix(predictions_cart, test_data$RESPONSE)
+print(cm_cart)
+
+```
+As the output shows, the model is a very simple tree with only one split. It suggests that only one variable (CHK_ACCT) is being used to predict the outcome.
+
+Let's tweak the complexitiy parameter. 
+```{r}
+# Define a grid of cp values
+cp_grid <- expand.grid(.cp = seq(0.01, 0.5, 0.01))
+
+# Train the CART model using caret with the cp grid
+set.seed(42)
+cart_model <- train(RESPONSE ~ ., 
+                    data = train_data, 
+                    method = "rpart", 
+                    trControl = ctrl,
+                    tuneGrid = cp_grid)
+
+# Print the model
+print(cart_model)
+summary(cart_model)
+
+# Make predictions on the test dataset
+predictions_cart <- predict(cart_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_cart <- confusionMatrix(predictions_cart, test_data$RESPONSE)
+print(cm_cart)
+
+
 ```
 
 ## Neural Network
