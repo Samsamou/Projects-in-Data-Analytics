@@ -546,7 +546,55 @@ cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
 print(cm_nn)
 
 ```
-As we can see, the accuracy of the model is mediocre at best. With 0.71, and a sensitivity of 0.62, the model is essentially tossing a coin-flip for every bad client.
+As we can see, the accuracy of the model is mediocre at best. With 0.71, and a sensitivity of 0.62, the model is essentially tossing a coin-flip for every bad client. Furthermore, we can see that Caret chose bootstrapping instead of cross-validation, so let's try it in the next model:
+
+```{r}
+# Train the Neural Network model using caret
+set.seed(42)
+ctrl_test <- trainControl(method = "repeatedcv",
+                          sampling = "down",
+                          savePredictions = "final")
+
+nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl_test, linout = FALSE, trace = FALSE)
+
+# Print the model
+print(nn_model)
+
+# Make predictions on the test dataset
+predictions_nn <- predict(nn_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
+print(cm_nn)
+
+```
+And we can see that the sensitivity increased dramatically, from `71%` to `78%` which is what we want to see.
+
+Now, let's try to adjust the different parameters manually:
+
+```{r}
+# Train the Neural Network model using caret
+set.seed(42)
+ctrl_test <- trainControl(method = "repeatedcv",
+                          sampling = "down",
+                          savePredictions = "final")
+
+nnetGrid <-  expand.grid(size = seq(from = 1, to = 5, by = 1),
+                        decay = seq(from = 0.01, to = 0.1, by = 0.01))
+
+nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl_test, linout = FALSE, tuneGrid = nnetGrid, trace = FALSE, metric = "Accuracy")
+
+# Print the model
+print(nn_model)
+
+# Make predictions on the test dataset
+predictions_nn <- predict(nn_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
+print(cm_nn)
+
+```
 
 ## Support vector (SVM)
 ```{r}
