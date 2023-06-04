@@ -570,33 +570,67 @@ print(cm_cart)
 
 ```
 As the output shows, the model is a very simple tree with only one split. It suggests that only one variable (CHK_ACCT) is being used to predict the outcome.
+Lets display the tree : 
+```{r}
+# Create the plot
+rpart.plot(cart_model$finalModel, roundint = FALSE, fallen.leaves = TRUE, type = 3)
+```
+```{r}
+var_imp <- varImp(cart_model)
+print(var_imp)
+```
 
-Let's tweak the complexitiy parameter. 
+```{r}
+library(pROC)
+# Make predictions on the test dataset with type = "prob"
+predictions_cart_probs <- predict(cart_model, test_data, type = "prob")
+
+# The 'pROC' function expects a numeric vector, so we only need the probabilities for one class. 
+# Let's take the probabilities for the positive class (assuming "1" is your positive class)
+positive_class_probs <- predictions_cart_probs$'1'
+roc_obj <- roc(test_data$RESPONSE, positive_class_probs)
+plot(roc_obj)
+
+
+```
+Let's tweak the complexitiy parameter by pruning the tree. 
 ```{r}
 # Define a grid of cp values
 cp_grid <- expand.grid(.cp = seq(0.01, 0.5, 0.01))
 
 # Train the CART model using caret with the cp grid
 set.seed(42)
-cart_model <- train(RESPONSE ~ ., 
+cart_model_grid <- train(RESPONSE ~ ., 
                     data = train_data, 
                     method = "rpart", 
                     trControl = ctrl,
                     tuneGrid = cp_grid)
 
 # Print the model
-print(cart_model)
-summary(cart_model)
+print(cart_model_grid)
+summary(cart_model_grid)
 
 # Make predictions on the test dataset
-predictions_cart <- predict(cart_model, test_data)
+predictions_cart_grid <- predict(cart_model_grid, test_data)
 
 # Evaluate the model using a confusion matrix
-cm_cart <- confusionMatrix(predictions_cart, test_data$RESPONSE)
-print(cm_cart)
-
+cm_cart_grid <- confusionMatrix(predictions_cart_grid, test_data$RESPONSE)
+print(cm_cart_grid)
 
 ```
+
+```{r}
+# Create the plot
+rpart.plot(cart_model_grid$finalModel, roundint = FALSE, fallen.leaves = TRUE, type = 3)
+
+```
+
+```{r}
+var_imp <- varImp(cart_model_grid)
+print(var_imp)
+```
+
+
 
 ## Neural Network
 ```{r}
