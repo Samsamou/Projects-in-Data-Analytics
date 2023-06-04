@@ -190,7 +190,7 @@ levels(credit_data$MARITAL_STATUS) <- c("Unknown/Not Specified", "Single", "Divo
 
 #Drop the columns 
 credit_data <- credit_data %>%
-  select(-MALE_SINGLE, -MALE_DIV, -MALE_MAR_or_WID)
+  select(-MALE_SINGLE, -MALE_DIV, -MALE_MAR_or_WID, -MARITAL_STATUS, -TELEPHONE, -FOREIGN, -AGE)
 ```
 
 # 4 Perfrom a Linear Regression 
@@ -329,7 +329,7 @@ The cross-validation accuracy for the logistic regression model is 0.7632, which
 ```{r}
 #Let's drop the columns we don't need
 credit_data <- credit_data %>%
-  select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, FURNITURE, AMOUNT, SAV_ACCT, INSTALL_RATE, GUARANTOR, PRESENT_RESIDENT, REAL_ESTATE, OTHER_INSTALL, TELEPHONE, FOREIGN, MARITAL_STATUS)
+  select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, FURNITURE, AMOUNT, SAV_ACCT, INSTALL_RATE, GUARANTOR, PRESENT_RESIDENT, REAL_ESTATE, OTHER_INSTALL)
 
 #we deleted telephone and foreign because ...... and we go from 30 variables to 18
 
