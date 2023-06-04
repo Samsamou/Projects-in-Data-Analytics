@@ -331,21 +331,15 @@ credit_data <- credit_data %>%
 
 head(credit_data)
 ```
-```{r}
-# Split the data into training and testing sets
- #set.seed(123) # For reproducibility
-split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
-train_data <- credit_data[split, ]
-test_data <- credit_data[!split, ]
-```
+
 
 ```{r}
 # Convert RESPONSE to a factor and adjust the levels
 train_data$RESPONSE <- as.factor(train_data$RESPONSE)
-levels(train_data$RESPONSE) <- c("Class0", "Class1")
+levels(train_data$RESPONSE) <- c("Bad", "Good")
 
 test_data$RESPONSE <- as.factor(test_data$RESPONSE)
-levels(test_data$RESPONSE) <- c("Class0", "Class1")
+levels(test_data$RESPONSE) <- c("Bad", "Good")
 # Set up the training control with down-sampling
 ctrl <- trainControl(method = "cv", 
                      number = 10, 
@@ -357,16 +351,6 @@ ctrl <- trainControl(method = "cv",
 ## RANDOM FOREST 
 
 ```{r}
-#Transform into factor 
-credit_data$RESPONSE <- factor(credit_data$RESPONSE, levels = c(0, 1))
-
-
-# Split the data into training and testing sets
- 
-train_indices <- sample(1:nrow(credit_data), 0.7 * nrow(credit_data))
-train_data <- credit_data[train_indices, ]
-test_data <- credit_data[-train_indices, ]
-
 # Set up the trainControl object
 ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, verboseIter = FALSE, sampling = "down")
 
@@ -439,7 +423,7 @@ weighted_rf_model <- train(RESPONSE ~ .,
                            metric = "Accuracy",
                            trControl = train_control,
                            tuneGrid = tune_grid,
-                           weights = ifelse(train_data$RESPONSE == '0', class_weights[1], class_weights[2]))
+                           weights = ifelse(train_data$RESPONSE == 'Bad', class_weights[1], class_weights[2]))
 
 # Obtain predicted probabilities for the test dataset
 predicted_prob <- predict(weighted_rf_model, newdata = test_data, type = "prob")
@@ -448,7 +432,7 @@ predicted_prob <- predict(weighted_rf_model, newdata = test_data, type = "prob")
 threshold <- 0.3
 
 # Classify customers based on the custom threshold
-custom_predictions <- ifelse(predicted_prob[, "0"] > threshold, "0", "1")
+custom_predictions <- ifelse(predicted_prob[, "Bad"] > threshold, "Bad", "Good")
 
 # Convert custom_predictions to a factor with the same levels as test_data$RESPONSE
 custom_predictions <- factor(custom_predictions, levels = levels(test_data$RESPONSE))
@@ -567,7 +551,7 @@ predictions_cart_probs <- predict(cart_model, test_data, type = "prob")
 
 # The 'pROC' function expects a numeric vector, so we only need the probabilities for one class. 
 # Let's take the probabilities for the positive class (assuming "1" is your positive class)
-positive_class_probs <- predictions_cart_probs$'1'
+positive_class_probs <- predictions_cart_probs$'Good'
 roc_obj <- roc(test_data$RESPONSE, positive_class_probs)
 plot(roc_obj)
 
