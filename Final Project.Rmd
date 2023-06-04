@@ -21,16 +21,20 @@ library(car)
 library(devtools)
 library(doParallel)
 library(kernlab)
-registerDoParallel(cores=6)
 library(randomForest)
 library(caret)
-library(gmodels)
+#library(gmodels)
 library(ggcorrplot)
 library(reshape2)
 library(glmnet)
 library(caTools)
 library(xgboost)
 library(gbm)
+library(plotROC)
+
+set.seed(42)
+cl <- makeCluster(detectCores())
+registerDoParallel(cl)
 ```
 
 # 1 Introduction 
@@ -188,9 +192,6 @@ levels(credit_data$MARITAL_STATUS) <- c("Unknown/Not Specified", "Single", "Divo
 #Drop the columns 
 credit_data <- credit_data %>%
   select(-MALE_SINGLE, -MALE_DIV, -MALE_MAR_or_WID)
-
-
-
 ```
 
 # 4 Perfrom a Linear Regression 
@@ -357,7 +358,7 @@ credit_data$RESPONSE <- factor(credit_data$RESPONSE, levels = c(0, 1))
 
 
 # Split the data into training and testing sets
-set.seed(42)
+ 
 train_indices <- sample(1:nrow(credit_data), 0.7 * nrow(credit_data))
 train_data <- credit_data[train_indices, ]
 test_data <- credit_data[-train_indices, ]
@@ -366,7 +367,7 @@ test_data <- credit_data[-train_indices, ]
 ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, verboseIter = FALSE, sampling = "down")
 
 # Train the random forest model using caret
-set.seed(42)
+ 
 rf_model <- train(RESPONSE ~ ., data = train_data, method = "rf", trControl = ctrl)
 
 # Print the model
@@ -461,7 +462,7 @@ print(cm_custom)
 
 ```{r}
 # Train the LDA model using caret
-set.seed(42)
+ 
 
 # Train the LDA model with down-sampling
 lda_model <- train(RESPONSE ~ . ,
@@ -484,7 +485,7 @@ print(cm_lda)
 ## QDA
 ```{r}
 # Train the LDA model with down-sampling
-set.seed(42)
+ 
 qda_model <- train(RESPONSE ~ . ,
                    data = train_data,
                    method = "qda",
@@ -503,7 +504,7 @@ print(cm_qda)
 ```
 Lets try to give more weight ti bad customers.
 ```{r}
-set.seed(42)
+ 
 # Determine class weights
 class_weights <- ifelse(train_data$RESPONSE == "Class0", 1, 0.5)
 
@@ -532,7 +533,7 @@ It did not change anything so we have prolly optimized it.
 
 ```{r}
 # Train the CART model using caret
-set.seed(42)
+ 
 cart_model <- train(RESPONSE ~ ., data = train_data, method = "rpart", trControl = ctrl)
 
 # Print the model
@@ -577,7 +578,7 @@ Let's tweak the complexitiy parameter by pruning the tree.
 cp_grid <- expand.grid(.cp = seq(0.01, 0.5, 0.01))
 
 # Train the CART model using caret with the cp grid
-set.seed(42)
+ 
 cart_model_grid <- train(RESPONSE ~ ., 
                     data = train_data, 
                     method = "rpart", 
@@ -612,11 +613,16 @@ print(var_imp)
 
 ## Neural Network
 ```{r}
-# Train the Neural Network model using caret
-set.seed(42)
+# Train the 1st NN
+ 
 ctrl <- trainControl(sampling = "down",
                      savePredictions = "final")
-nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl, linout = FALSE, trace = FALSE)
+nn_model <- train(RESPONSE ~ ., 
+                  data = train_data, 
+                  method = "nnet", 
+                  trControl = ctrl,
+                  linout = FALSE, 
+                  trace = FALSE)
 
 # Print the model
 print(nn_model)
@@ -629,16 +635,71 @@ cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
 print(cm_nn)
 
 ```
+
+
 As we can see, the accuracy of the model is mediocre at best. With 0.71, and a sensitivity of 0.62, the model is essentially tossing a coin-flip for every bad client. Furthermore, we can see that Caret chose bootstrapping instead of cross-validation, so let's try it in the next model:
 
+```{r, warning=FALSE}
+source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
+
+plot(nn_model)
+plot.nnet(nn_model)
+```
+
 ```{r}
-# Train the Neural Network model using caret
+# Train the 2st NN
+ 
+ctrl <- trainControl(method = "repeatedcv",
+                     sampling = "down",
+                     savePredictions = "final")
+nn_model <- train(RESPONSE ~ ., 
+                  data = train_data, 
+                  method = "nnet", 
+                  trControl = ctrl,
+                  linout = FALSE, 
+                  trace = FALSE)
+
+# Print the model
+print(nn_model)
+
+# Make predictions on the test dataset
+predictions_nn <- predict(nn_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
+print(cm_nn)
+
+```
+
+```{r, warning=FALSE}
+source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
+
+plot(nn_model)
+plot.nnet(nn_model)
+```
+Better overall accuracy, let's see with manually adjusted parameters:
+
+```{r}
+# Train the 3rd NN
 set.seed(42)
 ctrl <- trainControl(method = "repeatedcv",
                           sampling = "down",
                           savePredictions = "final")
 
-nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl, linout = FALSE, trace = FALSE)
+size<-c(1,2,3,4,5,6,7,8,9,10)
+decay<-c(1e-1,1e-2,1e-3,1e-4,1e-5,1e0,1e1,1e2,1e3)
+
+tunegrid_nnet <- expand.grid(size=size,
+                             decay=decay)
+
+nn_model <- train(RESPONSE ~ ., 
+                  data = train_data, 
+                  method = "nnet", 
+                  trControl = ctrl, 
+                  linout = FALSE, 
+                  trace = FALSE,
+                  tuneGrid = tunegrid_nnet,
+                  preProcess="range")
 
 # Print the model
 print(nn_model)
@@ -649,36 +710,8 @@ predictions_nn <- predict(nn_model, test_data)
 # Evaluate the model using a confusion matrix
 cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
 print(cm_nn)
-
 ```
-And we can see that the sensitivity increased dramatically, from `71%` to `78%` which is what we want to see.
-
-Now, let's try to adjust the different parameters manually:
-
-```{r}
-# Train the Neural Network model using caret
-set.seed(42)
-
-nn_model <- train(RESPONSE ~ ., 
-                  method = "nnet", 
-                  data = train_data, 
-                  trControl = ctrl,
-                  epochs = 2,
-                  tuneLength = 5) #tuneLength = 100, metric = "Accuracy") to get a model that spits out a 93% accuracy
-
-print(nn_model)
-
-# Make predictions on the test dataset
-predictions_nn <- predict(nn_model, test_data)
-
-# Evaluate the model using a confusion matrix
-cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
-print(cm_nn)
-
-```
-After running a big analysis, we can see that the accuracy is now at 0.72 and the sensitivity is a 0.75. The overall accuracy is better too, so the model is now able to handle better the difference between the two types of clients.
-
-Here is the last model, plotted:
+And we can see that the sensitivity reduced from `73%` to `71%`, but the accuracy is slightly better from `68%` to `71%` which is what we want to see.
 
 ```{r, warning=FALSE}
 source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
@@ -691,90 +724,134 @@ plot.nnet(nn_model)
 ## Support vector (SVM)
 Linear model:
 ```{r}
-set.seed(42)
-
-svm_model <- train(RESPONSE ~ ., 
+svm_model_lin <- train(RESPONSE ~ ., 
                    data = train_data,
                    method = "svmLinear",
                    trControl = ctrl,
-                   epochs = 50,
+                   epochs = 100,
                    tuneLength = 100,
                    verbose = FALSE)
 
 # Print the model
-print(svm_model)
+print(svm_model_lin)
 
 # Make predictions on the test dataset
-predictions_svm <- predict(svm_model, test_data)
+predictions_svm_lin <- predict(svm_model_lin, test_data)
 
 # Evaluate the model using a confusion matrix
-cm_svm <- confusionMatrix(predictions_svm, test_data$RESPONSE)
-print(cm_svm)
+cm_svm_lin <- confusionMatrix(predictions_svm_lin, test_data$RESPONSE)
+print(cm_svm_lin)
 
 ```
 
 Let's try the non-linear model: 
 ```{r}
 # Train the SVM model using caret
-set.seed(42)
 
-svm_model <- train(RESPONSE ~ ., 
+C<-c(0.1, 1, 10, 100)
+sigma<-c(0.0001, 0.001, 0.01, 0.1, 1)
+gr.radial<-expand.grid(C=C, sigma=sigma)
+
+svm_model_radial <- train(RESPONSE ~ ., 
                    data = train_data,
                    method = "svmRadial",
                    trControl = ctrl,
-                   epochs = 100,
-                   tuneLength = 100,
+                   tuneGrid = gr.radial,
                    verbose = FALSE)
 
 # Print the model
-print(svm_model)
+print(svm_model_radial)
 
 # Make predictions on the test dataset
-predictions_svm <- predict(svm_model, test_data)
+predictions_svm_radial <- predict(svm_model_radial, test_data)
 
 # Evaluate the model using a confusion matrix
-cm_svm <- confusionMatrix(predictions_svm, test_data$RESPONSE)
-print(cm_svm)
-
+cm_svm_radial <- confusionMatrix(predictions_svm_radial, test_data$RESPONSE)
+print(cm_svm_radial)
+plot(svm_model_radial)
 ```
-
-kernlab::plot(svm_model) 
 
 Now let's try the polynomial kernel basis:
 ```{r}
 # Train the SVM model using caret
-set.seed(42)
+C<-c(0.1, 1, 10, 100)
+degree<-c(1, 2, 3)
+scale<-1
+gr.poly<-expand.grid(C=C, degree=degree, scale=scale)
 
-svm_model <- train(RESPONSE ~ ., 
+svm_model_poly <- train(RESPONSE ~ ., 
                    data = train_data,
                    method = "svmPoly",
                    trControl = ctrl,
-                   epochs = 100,
-                   tuneLength = 100,
-                   verbose = FALSE)
+                   verbose = FALSE,
+                   tuneGrid = gr.poly)
 
 # Print the model
-print(svm_model)
+print(svm_model_poly)
 
 # Make predictions on the test dataset
-predictions_svm <- predict(svm_model, test_data)
+predictions_svm_poly <- predict(svm_model_poly, test_data)
 
 # Evaluate the model using a confusion matrix
-cm_svm <- confusionMatrix(predictions_svm, test_data$RESPONSE)
-print(cm_svm)
-
+cm_svm_poly <- confusionMatrix(predictions_svm_poly, test_data$RESPONSE)
+print(cm_svm_poly)
+plot(svm_model_poly)
 ```
 
+Selection of the best SVM model:
 
+```{r}
+prev.class.lin<-predict(svm_model_lin, newdata=test_data)
+prev.class.poly<-predict(svm_model_poly, newdata=test_data)
+prev.class.radial<-predict(svm_model_radial, newdata=test_data)
+prev.class.lin[1:10]
+prev.class.poly[1:10]
+prev.class.radial[1:10]
+```
+Class probabilities:
+```{r}
+prev.prob.lin<-predict(svm_model_lin, newdata=test_data, type="prob")
+prev.prob.poly<-predict(svm_model_poly, newdata=test_data, type="prob")
+prev.prob.radial<-predict(svm_model_radial, newdata=test_data, type="prob")
+round(head(prev.prob.lin),3)
+round(head(prev.prob.poly),3)
+round(head(prev.prob.radial),3)
+```
+
+ROC Curves:
+```{r}
+prev.class<-data.frame(lin=prev.class.lin,
+                       poly=prev.class.poly, 
+                       radial=prev.class.radial, 
+                       obs=test_data$RESPONSE)
+prev.class %>% summarise_all(funs(err=mean(obs!=.))) %>% select(-obs_err) %>% 
+  round(3)
+
+prev.prob<-data.frame(lin=prev.prob.lin[,2],
+                      poly=prev.prob.poly[,2], 
+                      radial=prev.prob.radial[,2], 
+                      obs=test_data$RESPONSE)
+
+df.roc<-prev.prob %>% gather(key=Methode, value=score, lin, poly, radial)
+basicplot <- ggplot(df.roc) + aes(d=obs, m=score, color=Methode) + geom_roc()
+basicplot + style_roc(theme = theme_light) + 
+  theme(axis.text = element_text(colour = "blue")) + 
+  ggtitle("Roc curves") 
+```
+Comparing prediction accuracies (resampling the models):
+
+```{r}
+models<-list(lin = svm_model_lin, poly=svm_model_poly, radial=svm_model_radial) # create a list of models
+resample_results <- resamples(models) # resample the models
+summary(resample_results, metric=c("Kappa", "Accuracy")) # generate a summary
+bwplot(resample_results , metric=c("Kappa","Accuracy")) # create a boxplot 
+```
 ## Gradient Boosting (GBM)
 ```{r}
-set.seed(42)
 gbm_model <- train(RESPONSE ~ ., 
                    data = train_data,
                    method = "gbm",
                    trControl = ctrl,
-                   epochs = 100,
-                   tuneLength = 100,
                    verbose = FALSE)
 
 # Print the model
@@ -790,15 +867,25 @@ print(cm_gbm)
 ```
 
 ## Extreme Gradiant Boosting (XGBoost)
-```{r, warning=FALSE, message=FALSE}
-# Train the XGBoost model using caret
-set.seed(42)
+
+Default params:
+
+```{r}
+grid_default <- expand.grid(
+  nrounds = 100,
+  max_depth = 6,
+  eta = 0.3,
+  gamma = 0,
+  colsample_bytree = 1,
+  min_child_weight = 1,
+  subsample = 1
+)
+
 xgb_model <- train(RESPONSE ~ ., 
                    data = train_data,
                    method = "xgbTree",
                    trControl = ctrl,
-                   epochs = 100,
-                   tuneLength = 100,
+                   tuneGrid = grid_default,
                    verbose = FALSE)
 
 # Print the model
@@ -812,3 +899,36 @@ cm_xgb <- confusionMatrix(predictions_xgb, test_data$RESPONSE)
 print(cm_xgb)
 
 ```
+
+```{r, warning=FALSE, message=FALSE}
+# Train the XGBoost model using caret
+set.seed(42)
+tune_grid <- expand.grid(
+  nrounds = 500,
+  eta = c(0.125, 0.025, 0.05, 0.1, 0.3),
+  max_depth = c(2, 3, 4, 5, 6, 7),
+  gamma = 0,
+  colsample_bytree = 1,
+  min_child_weight = 1,
+  subsample = 1
+)
+
+xgb_model <- train(RESPONSE ~ ., 
+                   data = train_data,
+                   method = "xgbTree",
+                   trControl = ctrl,
+                   tuneGrid = tune_grid,
+                   verbose = FALSE)
+
+# Print the model
+print(xgb_model)
+
+# Make predictions on the test dataset
+predictions_xgb <- predict(xgb_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_xgb <- confusionMatrix(predictions_xgb, test_data$RESPONSE)
+print(cm_xgb)
+
+```
+
