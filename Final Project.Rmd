@@ -17,8 +17,20 @@ library(shiny)
 library(knitr)
 library(stats)
 library(psych)
-install.packages("car")
 library(car)
+library(devtools)
+library(doParallel)
+library(kernlab)
+registerDoParallel(cores=6)
+library(randomForest)
+library(caret)
+library(gmodels)
+library(ggcorrplot)
+library(reshape2)
+library(glmnet)
+library(caTools)
+library(xgboost)
+library(gbm)
 ```
 
 # 1 Introduction 
@@ -133,8 +145,6 @@ Everything is fine now
 We do a correlation plot in order to find some correlation between our variables. 
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
-library(ggcorrplot)
-
 # Select all columns except OBS
 cols <- names(credit_data)[-1]
 
@@ -145,28 +155,6 @@ corr_mat <- cor(credit_data[, cols], use="complete.obs")
 ggcorrplot(corr_mat, hc.order = TRUE, type = "upper", outline.col = "white")
 
 #OR 
-
-library(ggplot2)
-library(reshape2)
-
-# create a correlation matrix
-corr_matrix <- cor(credit_data[, -1]) # exclude the first column "OBS"
-
-# convert the correlation matrix to a long format
-corr_melt <- melt(corr_matrix)
-
-# create a heatmap using ggplot2
-ggplot(corr_melt, aes(Var1, Var2, fill = value)) +
-  geom_tile() +
-  scale_fill_gradient2(low = "blue", high = "red", midpoint = 0, 
-                       limit = c(-1, 1), name = "Correlation") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        axis.text.y = element_text(angle = 0, vjust = 0.5, hjust=1))
-```
-```{r echo=FALSE, warning=FALSE, message=FALSE}
-library(ggplot2)
-library(reshape2)
 
 # create a correlation matrix
 corr_matrix <- cor(credit_data[, -1]) # exclude the first column "OBS"
@@ -227,9 +215,6 @@ As we can see, there is no problem with the variables as all the values are belo
 #5 Logistic regression 
 
 ```{r}
-# Load the necessary library
-library(glmnet)
-library(caTools)
 # Split the data into training and testing sets
 set.seed(123) # For reproducibility
 split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
@@ -299,8 +284,6 @@ stepwise_model_auc
  We are going to perform a cross-validation : 
 
 ```{r}
-library(caret)
-
 # Define a function to perform cross-validation
 cross_validation <- function(model_formula, data, k = 10) {
   folds <- createFolds(data$RESPONSE, k = k)
@@ -344,7 +327,6 @@ credit_data <- credit_data %>%
 head(credit_data)
 ```
 ```{r}
-# Load the necessary library
 # Split the data into training and testing sets
 set.seed(123) # For reproducibility
 split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
@@ -370,10 +352,6 @@ ctrl <- trainControl(method = "cv",
 ## RANDOM FOREST 
 
 ```{r}
-library(randomForest)
-library(caret)
-library(gmodels)
-
 #Transform into factor 
 credit_data$RESPONSE <- factor(credit_data$RESPONSE, levels = c(0, 1))
 
@@ -622,11 +600,11 @@ As we can see, the accuracy of the model is mediocre at best. With 0.71, and a s
 ```{r}
 # Train the Neural Network model using caret
 set.seed(42)
-ctrl_test <- trainControl(method = "repeatedcv",
+ctrl <- trainControl(method = "repeatedcv",
                           sampling = "down",
                           savePredictions = "final")
 
-nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl_test, linout = FALSE, trace = FALSE)
+nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl, linout = FALSE, trace = FALSE)
 
 # Print the model
 print(nn_model)
@@ -646,16 +624,14 @@ Now, let's try to adjust the different parameters manually:
 ```{r}
 # Train the Neural Network model using caret
 set.seed(42)
-ctrl_test <- trainControl(method = "repeatedcv",
-                          sampling = "down",
-                          savePredictions = "final")
 
-nnetGrid <-  expand.grid(size = seq(from = 1, to = 5, by = 1),
-                        decay = seq(from = 0.01, to = 0.1, by = 0.01))
+nn_model <- train(RESPONSE ~ ., 
+                  method = "nnet", 
+                  data = train_data, 
+                  trControl = ctrl,
+                  epochs = 2,
+                  tuneLength = 5) #tuneLength = 100, metric = "Accuracy") to get a model that spits out a 93% accuracy
 
-nn_model <- train(RESPONSE ~ ., data = train_data, method = "nnet", trControl = ctrl_test, linout = FALSE, tuneGrid = nnetGrid, trace = FALSE, metric = "Accuracy")
-
-# Print the model
 print(nn_model)
 
 # Make predictions on the test dataset
@@ -666,12 +642,30 @@ cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
 print(cm_nn)
 
 ```
+After running a big analysis, we can see that the accuracy is now at 0.72 and the sensitivity is a 0.75. The overall accuracy is better too, so the model is now able to handle better the difference between the two types of clients.
+
+Here is the last model, plotted:
+
+```{r, warning=FALSE}
+source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
+
+plot(nn_model)
+plot.nnet(nn_model)
+```
+
 
 ## Support vector (SVM)
+Linear model:
 ```{r}
-# Train the SVM model using caret
 set.seed(42)
-svm_model <- train(RESPONSE ~ ., data = train_data, method = "svmRadial", trControl = ctrl)
+
+svm_model <- train(RESPONSE ~ ., 
+                   data = train_data,
+                   method = "svmLinear",
+                   trControl = ctrl,
+                   epochs = 50,
+                   tuneLength = 100,
+                   verbose = FALSE)
 
 # Print the model
 print(svm_model)
@@ -684,16 +678,70 @@ cm_svm <- confusionMatrix(predictions_svm, test_data$RESPONSE)
 print(cm_svm)
 
 ```
-Please note that these models require that your data is properly preprocessed (scaling for Neural Networks and SVMs, handling of missing data, etc.). Also, remember that tuning the hyperparameters of these models (like the complexity parameter in CART, the number of hidden nodes in Neural Networks or the cost parameter in SVMs) is crucial for their performance. In the provided code, the 'train' function will use default hyperparameters and perform a basic grid search for hyperparameter tuning. However, depending on your dataset and problem, you might want to tune these hyperparameters more carefully.
+
+Let's try the non-linear model: 
+```{r}
+# Train the SVM model using caret
+set.seed(42)
+
+svm_model <- train(RESPONSE ~ ., 
+                   data = train_data,
+                   method = "svmRadial",
+                   trControl = ctrl,
+                   epochs = 100,
+                   tuneLength = 100,
+                   verbose = FALSE)
+
+# Print the model
+print(svm_model)
+
+# Make predictions on the test dataset
+predictions_svm <- predict(svm_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_svm <- confusionMatrix(predictions_svm, test_data$RESPONSE)
+print(cm_svm)
+
+```
+
+kernlab::plot(svm_model) 
+
+Now let's try the polynomial kernel basis:
+```{r}
+# Train the SVM model using caret
+set.seed(42)
+
+svm_model <- train(RESPONSE ~ ., 
+                   data = train_data,
+                   method = "svmPoly",
+                   trControl = ctrl,
+                   epochs = 100,
+                   tuneLength = 100,
+                   verbose = FALSE)
+
+# Print the model
+print(svm_model)
+
+# Make predictions on the test dataset
+predictions_svm <- predict(svm_model, test_data)
+
+# Evaluate the model using a confusion matrix
+cm_svm <- confusionMatrix(predictions_svm, test_data$RESPONSE)
+print(cm_svm)
+
+```
+
 
 ## Gradient Boosting (GBM)
 ```{r}
-# Load the required library
-library(gbm)
-
-# Train the GBM model using caret
 set.seed(42)
-gbm_model <- train(RESPONSE ~ ., data = train_data, method = "gbm", trControl = ctrl)
+gbm_model <- train(RESPONSE ~ ., 
+                   data = train_data,
+                   method = "gbm",
+                   trControl = ctrl,
+                   epochs = 100,
+                   tuneLength = 100,
+                   verbose = FALSE)
 
 # Print the model
 print(gbm_model)
@@ -709,12 +757,15 @@ print(cm_gbm)
 
 ## Extreme Gradiant Boosting (XGBoost)
 ```{r, warning=FALSE, message=FALSE}
-# Load the required library
-library(xgboost)
-
 # Train the XGBoost model using caret
 set.seed(42)
-xgb_model <- train(RESPONSE ~ ., data = train_data, method = "xgbTree", trControl = ctrl)
+xgb_model <- train(RESPONSE ~ ., 
+                   data = train_data,
+                   method = "xgbTree",
+                   trControl = ctrl,
+                   epochs = 100,
+                   tuneLength = 100,
+                   verbose = FALSE)
 
 # Print the model
 print(xgb_model)
