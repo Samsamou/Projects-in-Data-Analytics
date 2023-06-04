@@ -133,13 +133,19 @@ So what to do ? As the missing/wrond values appears a few time in our dataset, w
 # Drop rows with missing values in AGE
 credit_data <- credit_data[!is.na(credit_data$AGE), ]
 
+# Drop rows with AGE > 100
+credit_data <- credit_data %>%
+  filter(AGE <= 100)
+# Drop rows where duration is negative 
+credit_data <- credit_data %>%
+  filter(DURATION > 0)
 # Drop rows with incorrect values in MALE_SINGLE
 credit_data <- credit_data[credit_data$MALE_SINGLE <= 1, ]
 
 # Drop rows with incorrect values in GUARANTOR
 credit_data <- credit_data[credit_data$GUARANTOR >= 0, ]
 
-summary(credit_data)
+kable(summary(credit_data))
 ```
 
 Everything is fine now
