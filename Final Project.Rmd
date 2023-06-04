@@ -162,23 +162,6 @@ corr_mat <- cor(credit_data[, cols], use="complete.obs")
 
 # Create the correlation plot
 ggcorrplot(corr_mat, hc.order = TRUE, type = "upper", outline.col = "white")
-
-#OR 
-
-# create a correlation matrix
-corr_matrix <- cor(credit_data[, -1]) # exclude the first column "OBS"
-
-# convert the correlation matrix to a long format
-corr_melt <- melt(corr_matrix)
-
-# create a heatmap using ggplot2
-ggplot(corr_melt, aes(X1, X2, fill = value)) +
-  geom_tile() +
-  scale_fill_gradient2(low = "blue", high = "red", midpoint = 0, 
-                       limit = c(-1, 1), name = "Correlation") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        axis.text.y = element_text(angle = 0, vjust = 0.5, hjust=1))
 ```
 
 # 3 Proposition to modify the data 
@@ -196,7 +179,7 @@ levels(credit_data$MARITAL_STATUS) <- c("Unknown/Not Specified", "Single", "Divo
 
 #Drop the columns 
 credit_data <- credit_data %>%
-  select(-MALE_SINGLE, -MALE_DIV, -MALE_MAR_or_WID, -MARITAL_STATUS, -TELEPHONE, -FOREIGN, -AGE)
+  select(-MALE_SINGLE, -MALE_DIV, -MALE_MAR_or_WID, -MARITAL_STATUS, -TELEPHONE, -FOREIGN)
 ```
 
 # 4 Perfrom a Linear Regression 
@@ -326,18 +309,18 @@ stepwise_formula <- RESPONSE ~ CHK_ACCT + DURATION + HISTORY + NEW_CAR + USED_CA
                     FURNITURE + RADIO.TV + EDUCATION + RETRAINING + AMOUNT + SAV_ACCT +
                     EMPLOYMENT + INSTALL_RATE + GUARANTOR + PRESENT_RESIDENT + REAL_ESTATE +
                     PROP_UNKN_NONE + AGE + OTHER_INSTALL + RENT + NUM_CREDITS +
-                    JOB + NUM_DEPENDENTS + TELEPHONE + FOREIGN + MARITAL_STATUS
+                    JOB + NUM_DEPENDENTS
 stepwise_cv_accuracy <- cross_validation(stepwise_formula, credit_data)
 print(paste("Stepwise Logistic Regression CV Accuracy:", stepwise_cv_accuracy))
 ```
 The values for AUC are both above 0.75 making them fair to predict a good or bad credit. The logistic model has a higher ability to correctly predict rather than the stepwise one but the difference is not that huge. The stepwise has an AIC of 657.15 while the the normal logistic regression has a value of 675.23 which is not that of a big difference. As they have the same accuracy, we can easily say that using simple logistic or a stepwise one does not make that of a difference. The small improve of accuracy is not worth the comèlexity. 
-The cross-validation accuracy for the logistic regression model is 0.7632, which is slightly higher than the 0.75 accuracy WE got earlier with a single train-test split. This indicates that the logistic regression model is somewhat consistent in its performance across different subsets of the data, and we can conlude the same for the stepwise one 
+The cross-validation accuracy for the logistic regression model is 0.7632, which is slightly higher than the 0.75 accuracy WE got earlier with a single train-test split. This indicates that the logistic regression model is somewhat consistent in its performance across different subsets of the data, and we can conclude the same for the stepwise one 
 ```{r}
 #Let's drop the columns we don't need
 credit_data <- credit_data %>%
-  select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, FURNITURE, AMOUNT, SAV_ACCT, INSTALL_RATE, GUARANTOR, PRESENT_RESIDENT, REAL_ESTATE, OTHER_INSTALL)
+  select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, FURNITURE, AMOUNT, SAV_ACCT, INSTALL_RATE, PRESENT_RESIDENT, OTHER_INSTALL, RENT)
 
-#we deleted telephone and foreign because ...... and we go from 30 variables to 18
+#we deleted deleted guarantor, real estate plus the ones before
 
 head(credit_data)
 ```
@@ -826,8 +809,8 @@ positive_pred_lin <- pred_lin_roc$'Bad'
 positive_pred_radial<- pred_radial_roc$'Bad'
 positive_pred_poly <- pred_poly_roc$'Bad'
 
-roc_obj_2 <- roc(test_data$RESPONSE, positive_pred_radial)
-plot(roc_obj_2)
+#roc_obj_2 <- roc(test_data$RESPONSE, positive_pred_radial)
+#plot(roc_obj_2)
 ```
 Comparing prediction accuracies (resampling the models):
 
