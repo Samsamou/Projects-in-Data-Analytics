@@ -31,6 +31,7 @@ library(caTools)
 library(xgboost)
 library(gbm)
 library(plotROC)
+library(rpart.plot)
 
 set.seed(42)
 cl <- makeCluster(detectCores())
@@ -167,7 +168,7 @@ corr_matrix <- cor(credit_data[, -1]) # exclude the first column "OBS"
 corr_melt <- melt(corr_matrix)
 
 # create a heatmap using ggplot2
-ggplot(corr_melt, aes(Var1, Var2, fill = value)) +
+ggplot(corr_melt, aes(X1, X2, fill = value)) +
   geom_tile() +
   scale_fill_gradient2(low = "blue", high = "red", midpoint = 0, 
                        limit = c(-1, 1), name = "Correlation") +
@@ -210,6 +211,9 @@ I am gonna perfrom a Multicolleniarity test in order to see of there is some pro
 ```{r}
 vif_model <- vif(model)
 vif_model
+
+credit_data <- credit_data %>%
+  select(-OWN_RES)
 ```
 As we can see, there is no problem with the variables as all the values are below 5.
 
@@ -217,7 +221,7 @@ As we can see, there is no problem with the variables as all the values are belo
 
 ```{r}
 # Split the data into training and testing sets
-set.seed(123) # For reproducibility
+set.seed(42)
 split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
 train_data <- credit_data[split, ]
 test_data <- credit_data[!split, ]
@@ -311,7 +315,7 @@ print(paste("Logistic Regression CV Accuracy:", logistic_cv_accuracy))
 stepwise_formula <- RESPONSE ~ CHK_ACCT + DURATION + HISTORY + NEW_CAR + USED_CAR +
                     FURNITURE + RADIO.TV + EDUCATION + RETRAINING + AMOUNT + SAV_ACCT +
                     EMPLOYMENT + INSTALL_RATE + GUARANTOR + PRESENT_RESIDENT + REAL_ESTATE +
-                    PROP_UNKN_NONE + AGE + OTHER_INSTALL + RENT + OWN_RES + NUM_CREDITS +
+                    PROP_UNKN_NONE + AGE + OTHER_INSTALL + RENT + NUM_CREDITS +
                     JOB + NUM_DEPENDENTS + TELEPHONE + FOREIGN + MARITAL_STATUS
 stepwise_cv_accuracy <- cross_validation(stepwise_formula, credit_data)
 print(paste("Stepwise Logistic Regression CV Accuracy:", stepwise_cv_accuracy))
@@ -321,7 +325,7 @@ The cross-validation accuracy for the logistic regression model is 0.7632, which
 ```{r}
 #Let's drop the columns we don't need
 credit_data <- credit_data %>%
-  select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, FURNITURE, AMOUNT, SAV_ACCT, INSTALL_RATE, GUARANTOR, PRESENT_RESIDENT, REAL_ESTATE, OTHER_INSTALL, OWN_RES, TELEPHONE, FOREIGN, MARITAL_STATUS)
+  select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, FURNITURE, AMOUNT, SAV_ACCT, INSTALL_RATE, GUARANTOR, PRESENT_RESIDENT, REAL_ESTATE, OTHER_INSTALL, TELEPHONE, FOREIGN, MARITAL_STATUS)
 
 #we deleted telephone and foreign because ...... and we go from 30 variables to 18
 
@@ -329,7 +333,7 @@ head(credit_data)
 ```
 ```{r}
 # Split the data into training and testing sets
-set.seed(123) # For reproducibility
+ #set.seed(123) # For reproducibility
 split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
 train_data <- credit_data[split, ]
 test_data <- credit_data[!split, ]
@@ -424,9 +428,6 @@ In comparison with the previous random forest model without hyperparameter tunin
 I am gonna try now to adjust the class weight 
 
 ```{r}
-# Convert the RESPONSE variable to a factor
-train_data$RESPONSE <- as.factor(train_data$RESPONSE)
-test_data$RESPONSE <- as.factor(test_data$RESPONSE)
 
 # Define class weights
 class_weights <- c(2, 1) # 2 for bad customers (class '0') and 1 for good customers (class '1')
@@ -539,7 +540,7 @@ cart_model <- train(RESPONSE ~ ., data = train_data, method = "rpart", trControl
 # Print the model
 print(cart_model)
 summary(cart_model)
-
+# 
 # Make predictions on the test dataset
 predictions_cart <- predict(cart_model, test_data)
 
@@ -681,7 +682,8 @@ Better overall accuracy, let's see with manually adjusted parameters:
 
 ```{r}
 # Train the 3rd NN
-set.seed(42)
+
+ #set.seed(42)
 ctrl <- trainControl(method = "repeatedcv",
                           sampling = "down",
                           savePredictions = "final")
@@ -902,7 +904,7 @@ print(cm_xgb)
 
 ```{r, warning=FALSE, message=FALSE}
 # Train the XGBoost model using caret
-set.seed(42)
+
 tune_grid <- expand.grid(
   nrounds = 500,
   eta = c(0.125, 0.025, 0.05, 0.1, 0.3),
