@@ -23,7 +23,6 @@ library(doParallel)
 library(kernlab)
 library(randomForest)
 library(caret)
-#library(gmodels)
 library(ggcorrplot)
 library(reshape2)
 library(glmnet)
@@ -33,7 +32,6 @@ library(gbm)
 library(plotROC)
 library(rpart.plot)
 
-set.seed(42)
 cl <- makeCluster(detectCores())
 registerDoParallel(cl)
 ```
@@ -252,6 +250,8 @@ summary(stepwise_model)
 ```
 
 ```{r}
+set.seed(42)
+
 # Generate predicted probabilities for the test data
 test_probs <- predict(stepwise_model, newdata = test_data, type = "response")
 # Convert probabilities to binary predictions
@@ -264,6 +264,8 @@ We can see that even after perfoming a stepwise regression, there is no differen
 
 We are computing now the AUC for the 2 models : 
 ```{r}
+set.seed(42)
+
 library(pROC)
 # We have to transfrom it in factors as the pROC takes only factors
 test_data$RESPONSE <- factor(test_data$RESPONSE, levels = c(0, 1))
@@ -289,6 +291,8 @@ stepwise_model_auc
  We are going to perform a cross-validation : 
 
 ```{r}
+set.seed(42)
+
 # Define a function to perform cross-validation
 cross_validation <- function(model_formula, data, k = 10) {
   folds <- createFolds(data$RESPONSE, k = k)
@@ -340,17 +344,14 @@ levels(train_data$RESPONSE) <- c("Bad", "Good")
 
 test_data$RESPONSE <- as.factor(test_data$RESPONSE)
 levels(test_data$RESPONSE) <- c("Bad", "Good")
-# Set up the training control with down-sampling
-ctrl <- trainControl(method = "cv", 
-                     number = 10, 
-                     sampling = "down",
-                     savePredictions = "final",
-                     classProbs = TRUE)
+
 ```
 
 ## RANDOM FOREST 
 
 ```{r}
+set.seed(42)
+
 # Set up the trainControl object
 ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, verboseIter = FALSE, sampling = "down")
 
@@ -368,9 +369,12 @@ predictions <- predict(rf_model, test_data)
 cm <- confusionMatrix(predictions, test_data$RESPONSE)
 print(cm)
 ```
+
 Ici on prends des hyperparameters pour trouver les meilleurs
 ```{r}
 # Define the search grid for hyperparameters
+set.seed(42)
+
 tune_grid <- expand.grid(mtry = seq(2, 29, 2))
 
 # Set up the training control with cross-validation and repeated sampling
@@ -412,6 +416,7 @@ In comparison with the previous random forest model without hyperparameter tunin
 I am gonna try now to adjust the class weight 
 
 ```{r}
+set.seed(42)
 
 # Define class weights
 class_weights <- c(2, 1) # 2 for bad customers (class '0') and 1 for good customers (class '1')
@@ -443,11 +448,12 @@ print(cm_custom)
 
 
 ```
+
 ## LDA
 
 ```{r}
-# Train the LDA model using caret
- 
+ set.seed(42)
+
 
 # Train the LDA model with down-sampling
 lda_model <- train(RESPONSE ~ . ,
@@ -468,9 +474,11 @@ print(cm_lda)
 ```
 
 ## QDA
+
 ```{r}
 # Train the LDA model with down-sampling
- 
+set.seed(42)
+
 qda_model <- train(RESPONSE ~ . ,
                    data = train_data,
                    method = "qda",
@@ -487,11 +495,13 @@ predictions_qda <- predict(qda_model, test_data)
 cm_qda <- confusionMatrix(predictions_qda, test_data$RESPONSE)
 print(cm_qda)
 ```
-Lets try to give more weight ti bad customers.
+Lets try to give more weight to bad customers.
+
 ```{r}
+set.seed(42)
  
 # Determine class weights
-class_weights <- ifelse(train_data$RESPONSE == "Class0", 1, 0.5)
+class_weights <- ifelse(train_data$RESPONSE == "Bad", 1, 0.5)
 
 # Train the QDA model with class weights
 qda_model <- train(RESPONSE ~ . ,
@@ -518,7 +528,8 @@ It did not change anything so we have prolly optimized it.
 
 ```{r}
 # Train the CART model using caret
- 
+ set.seed(42)
+
 cart_model <- train(RESPONSE ~ ., data = train_data, method = "rpart", trControl = ctrl)
 
 # Print the model
@@ -531,7 +542,6 @@ predictions_cart <- predict(cart_model, test_data)
 # Evaluate the model using a confusion matrix
 cm_cart <- confusionMatrix(predictions_cart, test_data$RESPONSE)
 print(cm_cart)
-
 ```
 As the output shows, the model is a very simple tree with only one split. It suggests that only one variable (CHK_ACCT) is being used to predict the outcome.
 Lets display the tree : 
@@ -539,6 +549,7 @@ Lets display the tree :
 # Create the plot
 rpart.plot(cart_model$finalModel, roundint = FALSE, fallen.leaves = TRUE, type = 3)
 ```
+
 ```{r}
 var_imp <- varImp(cart_model)
 print(var_imp)
@@ -546,16 +557,16 @@ print(var_imp)
 
 ```{r}
 library(pROC)
+set.seed(42)
+
 # Make predictions on the test dataset with type = "prob"
 predictions_cart_probs <- predict(cart_model, test_data, type = "prob")
 
 # The 'pROC' function expects a numeric vector, so we only need the probabilities for one class. 
-# Let's take the probabilities for the positive class (assuming "1" is your positive class)
-positive_class_probs <- predictions_cart_probs$'Good'
+
+positive_class_probs <- predictions_cart_probs$'Bad'
 roc_obj <- roc(test_data$RESPONSE, positive_class_probs)
 plot(roc_obj)
-
-
 ```
 Let's tweak the complexitiy parameter by pruning the tree. 
 ```{r}
@@ -599,7 +610,8 @@ print(var_imp)
 ## Neural Network
 ```{r}
 # Train the 1st NN
- 
+ set.seed(42)
+
 ctrl <- trainControl(sampling = "down",
                      savePredictions = "final")
 nn_model <- train(RESPONSE ~ ., 
@@ -633,7 +645,8 @@ plot.nnet(nn_model)
 
 ```{r}
 # Train the 2st NN
- 
+ set.seed(42)
+
 ctrl <- trainControl(method = "repeatedcv",
                      sampling = "down",
                      savePredictions = "final")
@@ -666,6 +679,7 @@ Better overall accuracy, let's see with manually adjusted parameters:
 
 ```{r}
 # Train the 3rd NN
+set.seed(42)
 
  #set.seed(42)
 ctrl <- trainControl(method = "repeatedcv",
@@ -708,8 +722,11 @@ plot.nnet(nn_model)
 
 
 ## Support vector (SVM)
+
 Linear model:
 ```{r}
+set.seed(42)
+
 svm_model_lin <- train(RESPONSE ~ ., 
                    data = train_data,
                    method = "svmLinear",
@@ -727,12 +744,13 @@ predictions_svm_lin <- predict(svm_model_lin, test_data)
 # Evaluate the model using a confusion matrix
 cm_svm_lin <- confusionMatrix(predictions_svm_lin, test_data$RESPONSE)
 print(cm_svm_lin)
+#plot(svm_model_lin)
 
 ```
 
 Let's try the non-linear model: 
 ```{r}
-# Train the SVM model using caret
+set.seed(42)
 
 C<-c(0.1, 1, 10, 100)
 sigma<-c(0.0001, 0.001, 0.01, 0.1, 1)
@@ -759,7 +777,8 @@ plot(svm_model_radial)
 
 Now let's try the polynomial kernel basis:
 ```{r}
-# Train the SVM model using caret
+set.seed(42)
+
 C<-c(0.1, 1, 10, 100)
 degree<-c(1, 2, 3)
 scale<-1
@@ -784,56 +803,42 @@ print(cm_svm_poly)
 plot(svm_model_poly)
 ```
 
-Selection of the best SVM model:
 
 ```{r}
-prev.class.lin<-predict(svm_model_lin, newdata=test_data)
-prev.class.poly<-predict(svm_model_poly, newdata=test_data)
-prev.class.radial<-predict(svm_model_radial, newdata=test_data)
-prev.class.lin[1:10]
-prev.class.poly[1:10]
-prev.class.radial[1:10]
-```
-Class probabilities:
-```{r}
-prev.prob.lin<-predict(svm_model_lin, newdata=test_data, type="prob")
-prev.prob.poly<-predict(svm_model_poly, newdata=test_data, type="prob")
-prev.prob.radial<-predict(svm_model_radial, newdata=test_data, type="prob")
-round(head(prev.prob.lin),3)
-round(head(prev.prob.poly),3)
-round(head(prev.prob.radial),3)
-```
+set.seed(42)
 
-ROC Curves:
-```{r}
-prev.class<-data.frame(lin=prev.class.lin,
-                       poly=prev.class.poly, 
-                       radial=prev.class.radial, 
-                       obs=test_data$RESPONSE)
-prev.class %>% summarise_all(funs(err=mean(obs!=.))) %>% select(-obs_err) %>% 
-  round(3)
+# Make predictions on the test dataset with type = "prob"
+pred_lin_roc <- predict(svm_model_lin, test_data, type = "prob")
+pred_radial_roc <- predict(svm_model_radial, test_data, type="prob")
+pred_poly_roc <- predict(svm_model_poly, test_data, type = "prob")
 
-prev.prob<-data.frame(lin=prev.prob.lin[,2],
-                      poly=prev.prob.poly[,2], 
-                      radial=prev.prob.radial[,2], 
-                      obs=test_data$RESPONSE)
 
-df.roc<-prev.prob %>% gather(key=Methode, value=score, lin, poly, radial)
-basicplot <- ggplot(df.roc) + aes(d=obs, m=score, color=Methode) + geom_roc()
-basicplot + style_roc(theme = theme_light) + 
-  theme(axis.text = element_text(colour = "blue")) + 
-  ggtitle("Roc curves") 
+# The 'pROC' function expects a numeric vector, so we only need the probabilities for one class. 
+# Let's take the probabilities for the positive class (assuming "0" is your positive class)
+
+positive_pred_lin <- pred_lin_roc$'Bad'
+positive_pred_radial<- pred_radial_roc$'Bad'
+positive_pred_poly <- pred_poly_roc$'Bad'
+
+roc_obj_2 <- roc(test_data$RESPONSE, positive_pred_radial)
+plot(roc_obj_2)
 ```
 Comparing prediction accuracies (resampling the models):
 
 ```{r}
+set.seed(42)
+
 models<-list(lin = svm_model_lin, poly=svm_model_poly, radial=svm_model_radial) # create a list of models
 resample_results <- resamples(models) # resample the models
 summary(resample_results, metric=c("Kappa", "Accuracy")) # generate a summary
 bwplot(resample_results , metric=c("Kappa","Accuracy")) # create a boxplot 
 ```
+
+
 ## Gradient Boosting (GBM)
 ```{r}
+set.seed(42)
+
 gbm_model <- train(RESPONSE ~ ., 
                    data = train_data,
                    method = "gbm",
@@ -857,6 +862,8 @@ print(cm_gbm)
 Default params:
 
 ```{r}
+set.seed(42)
+
 grid_default <- expand.grid(
   nrounds = 100,
   max_depth = 6,
@@ -887,7 +894,7 @@ print(cm_xgb)
 ```
 
 ```{r, warning=FALSE, message=FALSE}
-# Train the XGBoost model using caret
+set.seed(42)
 
 tune_grid <- expand.grid(
   nrounds = 500,
