@@ -714,6 +714,7 @@ predicted_probs <- predict(nn_model, newdata = test_data, type = "prob")[,2]
 roc_obj <- roc(test_data$RESPONSE, predicted_probs)
 # Plot the ROC curve
 plot(roc_obj, main="ROC Curve for the first neural network")
+varImp(nn_model)
 
 ```
 
@@ -755,6 +756,7 @@ predicted_probs <- predict(nn_model, newdata = test_data, type = "prob")[,2]
 roc_obj <- roc(test_data$RESPONSE, predicted_probs)
 # Plot the ROC curve
 plot(roc_obj, main="ROC Curve for the second neural network")
+varImp(nn_model)
 
 ```
 
@@ -804,7 +806,7 @@ predicted_probs <- predict(nn_model, newdata = test_data, type = "prob")[,2]
 roc_obj <- roc(test_data$RESPONSE, predicted_probs)
 # Plot the ROC curve
 plot(roc_obj, main="ROC Curve for the third neural network")
-
+varImp(nn_model)
 ```
 And we can see that the sensitivity reduced from `73%` to `71%`, but the accuracy is slightly better from `68%` to `71%` which is what we want to see.
 
@@ -839,6 +841,8 @@ predictions_svm_lin <- predict(svm_model_lin, test_data)
 # Evaluate the model using a confusion matrix
 cm_svm_lin <- confusionMatrix(predictions_svm_lin, test_data$RESPONSE)
 print(cm_svm_lin)
+varImp(svm_model_lin)
+
 ```
 
 Let's try the non-linear model: 
@@ -866,7 +870,7 @@ predictions_svm_radial <- predict(svm_model_radial, test_data)
 cm_svm_radial <- confusionMatrix(predictions_svm_radial, test_data$RESPONSE)
 print(cm_svm_radial)
 plot(svm_model_radial)
-plot(svm_model_radial$finalModel)
+varImp(svm_model_radial)
 
 ```
 
@@ -896,6 +900,7 @@ predictions_svm_poly <- predict(svm_model_poly, test_data)
 cm_svm_poly <- confusionMatrix(predictions_svm_poly, test_data$RESPONSE)
 print(cm_svm_poly)
 plot(svm_model_poly)
+varImp(svm_model_poly)
 ```
 
 
@@ -958,6 +963,7 @@ roc_obj <- roc(test_data$RESPONSE, predicted_probs)
 
 # Plot the ROC curve
 plot(roc_obj, main="ROC Curve for the Gradient Boosting Model")
+varImp(gbm_model)
 ```
 
 ## Extreme Gradiant Boosting (XGBoost)
@@ -1001,6 +1007,7 @@ roc_obj <- roc(test_data$RESPONSE, predicted_probs)
 
 # Plot the ROC curve
 plot(roc_obj, main="ROC Curve for the First XGBoost")
+varImp(xgb_model)
 ```
 
 ```{r, warning=FALSE, message=FALSE}
@@ -1040,5 +1047,7 @@ roc_obj <- roc(test_data$RESPONSE, predicted_probs)
 
 # Plot the ROC curve
 plot(roc_obj, main="ROC Curve for the second XGBoost Model")
+varImp(xgb_model)
+
 ```
 
