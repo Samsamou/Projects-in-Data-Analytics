@@ -179,11 +179,11 @@ levels(credit_data$MARITAL_STATUS) <- c("Unknown/Not Specified", "Single", "Divo
 
 #Drop the columns 
 credit_data <- credit_data %>%
-  select(-MALE_SINGLE, -MALE_DIV, -MALE_MAR_or_WID, -MARITAL_STATUS, -TELEPHONE, -FOREIGN)
+  select(-MALE_SINGLE, -MALE_DIV, -MALE_MAR_or_WID, -MARITAL_STATUS, -OBS., -TELEPHONE, -FOREIGN)
 ```
 
 Let us combine other variables 
-```{r}
+```{r eval=FALSE, include=FALSE}
 # Combine purpose of credit variables
 credit_data$CREDIT_PURPOSE <- NA
 credit_data$CREDIT_PURPOSE[credit_data$NEW_CAR == 1] <- "New Car"
@@ -231,7 +231,7 @@ model <- lm(RESPONSE ~ ., data = credit_data_noobs)
 summary(model)
 ```
 I am gonna perfrom a Multicolleniarity test in order to see of there is some problems in my variable. 
-```{r}
+```{r eval=FALSE, include=FALSE}
 vif_model <- vif(model)
 vif_model
 ```
@@ -279,10 +279,28 @@ test_probs <- predict(stepwise_model, newdata = test_data, type = "response")
 # Convert probabilities to binary predictions
 test_preds <- ifelse(test_probs > 0.5, 1, 0)
 # Calculate accuracy
+confusion_matrix <- table(Predicted = test_preds, Actual = test_data$RESPONSE)
+print(confusion_matrix)
+# Calculate accuracy
 accuracy <- mean(test_preds == test_data$RESPONSE)
 cat("Accuracy:", accuracy, "\n")
+# Sensitivity 
+sensitivity <- confusion_matrix[2, 2] / sum(confusion_matrix[, 2])
+cat("Sensitivity:", sensitivity, "\n")
+# Specificity 
+specificity <- confusion_matrix[1, 1] / sum(confusion_matrix[, 1])
+cat("Specifity:", specificity, "\n")
 ```
-We can see that even after perfoming a stepwise regression, there is no difference at all in the accuracy of the model. 
+```{r}
+library(boot)
+# Perform 10-fold cross-validation
+cv_result <- cv.glm(credit_data, stepwise_model, K = 10)
+
+# Print the results
+print(cv_result$delta)
+
+
+```
 
 We are computing now the AUC for the 2 models : 
 ```{r}
@@ -310,6 +328,7 @@ logistic_model_auc
 stepwise_model_auc
 
 ```
+<<<<<<< HEAD
  We are going to perform a cross-validation : 
 
 ```{r}
@@ -348,12 +367,24 @@ The cross-validation accuracy for the logistic regression model is 0.7632, which
 #Let's drop the columns we don't need
 #credit_data <- credit_data %>%
 #  select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, FURNITURE, AMOUNT, SAV_ACCT, INSTALL_RATE, PRESENT_RESIDENT, OTHER_INSTALL, RENT)
+=======
+ 
+```{r}
+#Let's drop the columns we don't need
+credit_data <- credit_data %>%
+  select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, SAV_ACCT, INSTALL_RATE, OTHER_INSTALL, OWN_RES)
+>>>>>>> 768bd312e4b3ed4e28db216a2893ac86b5494d35
 
 #we deleted deleted guarantor, real estate plus the ones before
 
 #head(credit_data)
 ```
-
+```{r}
+#New training/test set 
+split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
+train_data <- credit_data[split, ]
+test_data <- credit_data[!split, ]
+```
 
 ```{r}
 credit_data <- credit_data %>% select(RESPONSE, CHK_ACCT, DURATION, HISTORY, AMOUNT, SAV_ACCT, EMPLOYMENT, INSTALL_RATE, GUARANTOR, OTHER_INSTALL, CREDIT_PURPOSE, HOUSING)
@@ -372,6 +403,12 @@ levels(test_data$RESPONSE) <- c("Bad", "Good")
 ```
 
 ## RANDOM FOREST 
+```{R}
+
+
+
+
+```
 
 ```{r}
 set.seed(42)
@@ -394,6 +431,16 @@ cm <- confusionMatrix(predictions, test_data$RESPONSE)
 print(cm)
 ```
 
+```{r}
+# Compute the predicted probabilities of the positive class
+predicted_probs <- predict(rf_model, newdata = test_data, type = "prob")[,2]
+
+# Create the ROC curve
+roc_obj <- roc(test_data$RESPONSE, predicted_probs)
+
+# Plot the ROC curve
+plot(roc_obj, main="ROC Curve for Random Forest Model")
+```
 Ici on prends des hyperparameters pour trouver les meilleurs
 ```{r}
 # Define the search grid for hyperparameters
