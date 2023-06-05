@@ -740,7 +740,8 @@ nn_model <- train(RESPONSE ~ .,
                   method = "nnet", 
                   trControl = ctrl,
                   linout = FALSE, 
-                  trace = FALSE)
+                  trace = FALSE,
+                  metric = "Accuracy")
 
 # Print the model
 print(nn_model)
@@ -790,7 +791,7 @@ nn_model <- train(RESPONSE ~ .,
                   linout = FALSE, 
                   trace = FALSE,
                   tuneGrid = tunegrid_nnet,
-                  preProcess="range")
+                  metric="Accuracy")
 
 # Print the model
 print(nn_model)
@@ -956,13 +957,13 @@ predictions_gbm <- predict(gbm_model, test_data)
 cm_gbm <- confusionMatrix(predictions_gbm, test_data$RESPONSE)
 print(cm_gbm)
 
-predicted_probs <- predict(gbm_model, newdata = test_data, type = "prob")[,2]
+predicted_probs_gbm <- predict(gbm_model, newdata = test_data, type = "prob")[,2]
 
 # Create the ROC curve
-roc_obj <- roc(test_data$RESPONSE, predicted_probs)
+roc_obj_gbm <- roc(test_data$RESPONSE, predicted_probs_gbm)
 
 # Plot the ROC curve
-plot(roc_obj, main="ROC Curve for the Gradient Boosting Model")
+plot(roc_obj_gbm, main="ROC Curve for the Gradient Boosting Model")
 varImp(gbm_model)
 ```
 
@@ -1012,9 +1013,9 @@ varImp(xgb_model)
 
 ```{r, warning=FALSE, message=FALSE}
 set.seed(42)
-
+nrounds <-  seq(from = 100, to = 1000, by = 100)
 tune_grid <- expand.grid(
-  nrounds = 500,
+  nrounds = nrounds,
   eta = c(0.125, 0.025, 0.05, 0.1, 0.3),
   max_depth = c(2, 3, 4, 5, 6, 7),
   gamma = 0,
@@ -1040,14 +1041,21 @@ predictions_xgb <- predict(xgb_model, test_data)
 cm_xgb <- confusionMatrix(predictions_xgb, test_data$RESPONSE)
 print(cm_xgb)
 
-predicted_probs <- predict(xgb_model, newdata = test_data, type = "prob")[,2]
+predicted_probs_xgboost <- predict(xgb_model, newdata = test_data, type = "prob")[,2]
 
 # Create the ROC curve
-roc_obj <- roc(test_data$RESPONSE, predicted_probs)
+roc_obj_xgboost <- roc(test_data$RESPONSE, predicted_probs_xgboost)
 
 # Plot the ROC curve
-plot(roc_obj, main="ROC Curve for the second XGBoost Model")
+plot(roc_obj_xgboost, main="ROC Curve for the second XGBoost Model")
 varImp(xgb_model)
-
 ```
 
+```{r}
+# Plot ROC curves
+plot.roc(roc_obj_xgboost, main="ROC Curves", percent=TRUE, col="blue")
+lines.roc(roc_obj_gbm, percent=TRUE, col="red")
+
+# Add legend
+legend("bottomright", legend=c("XGBoost", "Gradient Boosting"), col=c("blue", "red"), lwd=2)
+```
