@@ -435,7 +435,7 @@ tune_grid <- expand.grid(mtry = seq(2, 29, 2))
 # Set up the training control with cross-validation and repeated sampling
 train_control <- trainControl(method = "repeatedcv",
                               number = 10,
-                              repeats = 3,
+                              repeats = 10,
                               sampling = "down",
                               search = "grid")
 
@@ -460,12 +460,16 @@ predictions <- predict(best_rf_model, test_data)
 cm <- confusionMatrix(predictions, test_data$RESPONSE)
 print(cm)
 ```
-The tuned random forest model achieved an accuracy of 0.7061 on the test dataset, with the best value for mtry = 6.
-The confusion matrix shows that out of all predictions made, 59 were true positives (actual bad customers predicted as bad), 150 were true negatives (actual good customers predicted as good), 66 were false positives (actual good customers predicted as bad), and 21 were false negatives (actual bad customers predicted as good).
-The model's sensitivity (true positive rate) is 0.7375, and the specificity (true negative rate) is 0.6944. These values indicate how well the model identifies bad customers and good customers, respectively.
-The positive predictive value (PPV) is 0.4720, and the negative predictive value (NPV) is 0.8772. These values indicate the proportion of true positive predictions among all positive predictions and the proportion of true negative predictions among all negative predictions, respectively.
-The balanced accuracy is 0.7160, which is the average of sensitivity and specificity.
-In comparison with the previous random forest model without hyperparameter tuning, the accuracy is slightly lower. However, this difference could be due to the randomness involved in the training process and the random forest algorithm.
+```{r}
+# Compute the predicted probabilities of the positive class
+tuned_predicted_probs <- predict(tuned_rf_model, newdata = test_data, type = "prob")[,2]
+
+# Create the ROC curve
+tuned_roc_obj <- roc(test_data$RESPONSE, tuned_predicted_probs)
+
+# Plot the ROC curve
+plot(tuned_roc_obj, main="ROC Curve for Random Forest Model")
+```
 
 
 I am gonna try now to adjust the class weight 
@@ -528,6 +532,8 @@ cm_lda <- confusionMatrix(predictions_lda, test_data$RESPONSE)
 print(cm_lda)
 ```
 
+
+
 ## QDA
 
 ```{r}
@@ -549,6 +555,7 @@ predictions_qda <- predict(qda_model, test_data)
 # Evaluate the model using a confusion matrix
 cm_qda <- confusionMatrix(predictions_qda, test_data$RESPONSE)
 print(cm_qda)
+varImp(qda_model)
 ```
 Lets try to give more weight to bad customers.
 
@@ -579,6 +586,22 @@ print(cm_qda)
 ```
 It did not change anything so we have prolly optimized it.
 
+```{r}
+# Make probability predictions
+lda_prob_preds <- predict(lda_model, test_data, type = "prob")[,2]
+qda_prob_preds <- predict(qda_model, test_data, type = "prob")[,2]
+
+# Compute ROC curves
+roc_obj_lda <- roc(test_data$RESPONSE, lda_prob_preds)
+roc_obj_qda <- roc(test_data$RESPONSE, qda_prob_preds)
+
+# Plot ROC curves
+plot.roc(roc_obj_lda, main="ROC Curves", percent=TRUE, col="blue")
+lines.roc(roc_obj_qda, percent=TRUE, col="red")
+
+# Add legend
+legend("bottomright", legend=c("LDA", "QDA"), col=c("blue", "red"), lwd=2)
+```
 ## CART
 
 ```{r}
@@ -659,6 +682,7 @@ rpart.plot(cart_model_grid$finalModel, roundint = FALSE, fallen.leaves = TRUE, t
 var_imp <- varImp(cart_model_grid)
 print(var_imp)
 ```
+
 
 
 
