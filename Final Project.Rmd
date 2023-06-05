@@ -367,28 +367,19 @@ The cross-validation accuracy for the logistic regression model is 0.7632, which
 #Let's drop the columns we don't need
 #credit_data <- credit_data %>%
 #  select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, FURNITURE, AMOUNT, SAV_ACCT, INSTALL_RATE, PRESENT_RESIDENT, OTHER_INSTALL, RENT)
-=======
+```
  
 ```{r}
 #Let's drop the columns we don't need
 credit_data <- credit_data %>%
   select(RESPONSE, CHK_ACCT, DURATION, HISTORY, NEW_CAR, USED_CAR, SAV_ACCT, INSTALL_RATE, OTHER_INSTALL, OWN_RES)
->>>>>>> 768bd312e4b3ed4e28db216a2893ac86b5494d35
 
 #we deleted deleted guarantor, real estate plus the ones before
 
 #head(credit_data)
 ```
-```{r}
-#New training/test set 
-split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
-train_data <- credit_data[split, ]
-test_data <- credit_data[!split, ]
-```
 
 ```{r}
-credit_data <- credit_data %>% select(RESPONSE, CHK_ACCT, DURATION, HISTORY, AMOUNT, SAV_ACCT, EMPLOYMENT, INSTALL_RATE, GUARANTOR, OTHER_INSTALL, CREDIT_PURPOSE, HOUSING)
-
 set.seed(42)
 split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
 train_data <- credit_data[split, ]
@@ -403,13 +394,6 @@ levels(test_data$RESPONSE) <- c("Bad", "Good")
 ```
 
 ## RANDOM FOREST 
-```{R}
-
-
-
-
-```
-
 ```{r}
 set.seed(42)
 
@@ -702,6 +686,11 @@ predictions_nn <- predict(nn_model, test_data)
 cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
 print(cm_nn)
 
+predicted_probs <- predict(nn_model, newdata = test_data, type = "prob")[,2]
+roc_obj <- roc(test_data$RESPONSE, predicted_probs)
+# Plot the ROC curve
+plot(roc_obj, main="ROC Curve for the first neural network")
+
 ```
 
 
@@ -737,6 +726,11 @@ predictions_nn <- predict(nn_model, test_data)
 # Evaluate the model using a confusion matrix
 cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
 print(cm_nn)
+
+predicted_probs <- predict(nn_model, newdata = test_data, type = "prob")[,2]
+roc_obj <- roc(test_data$RESPONSE, predicted_probs)
+# Plot the ROC curve
+plot(roc_obj, main="ROC Curve for the second neural network")
 
 ```
 
@@ -781,6 +775,12 @@ predictions_nn <- predict(nn_model, test_data)
 # Evaluate the model using a confusion matrix
 cm_nn <- confusionMatrix(predictions_nn, test_data$RESPONSE)
 print(cm_nn)
+
+predicted_probs <- predict(nn_model, newdata = test_data, type = "prob")[,2]
+roc_obj <- roc(test_data$RESPONSE, predicted_probs)
+# Plot the ROC curve
+plot(roc_obj, main="ROC Curve for the third neural network")
+
 ```
 And we can see that the sensitivity reduced from `73%` to `71%`, but the accuracy is slightly better from `68%` to `71%` which is what we want to see.
 
@@ -815,8 +815,6 @@ predictions_svm_lin <- predict(svm_model_lin, test_data)
 # Evaluate the model using a confusion matrix
 cm_svm_lin <- confusionMatrix(predictions_svm_lin, test_data$RESPONSE)
 print(cm_svm_lin)
-#plot(svm_model_lin)
-
 ```
 
 Let's try the non-linear model: 
@@ -844,6 +842,8 @@ predictions_svm_radial <- predict(svm_model_radial, test_data)
 cm_svm_radial <- confusionMatrix(predictions_svm_radial, test_data$RESPONSE)
 print(cm_svm_radial)
 plot(svm_model_radial)
+plot(svm_model_radial$finalModel)
+
 ```
 
 Now let's try the polynomial kernel basis:
@@ -879,19 +879,19 @@ plot(svm_model_poly)
 set.seed(42)
 
 # Make predictions on the test dataset with type = "prob"
-pred_lin_roc <- predict(svm_model_lin, test_data, type = "prob")
-pred_radial_roc <- predict(svm_model_radial, test_data, type="prob")
-pred_poly_roc <- predict(svm_model_poly, test_data, type = "prob")
+#pred_lin_roc <- predict(svm_model_lin, test_data, type = "prob")[,2]
+#pred_radial_roc <- predict(svm_model_radial, test_data, type="prob")[,2]
+#pred_poly_roc <- predict(svm_model_poly, test_data, type = "prob")[,2]
 
 
 # The 'pROC' function expects a numeric vector, so we only need the probabilities for one class. 
 # Let's take the probabilities for the positive class (assuming "0" is your positive class)
 
-positive_pred_lin <- pred_lin_roc$'Bad'
-positive_pred_radial<- pred_radial_roc$'Bad'
-positive_pred_poly <- pred_poly_roc$'Bad'
+#positive_pred_lin <- pred_lin_roc$'Bad'
+#positive_pred_radial<- pred_radial_roc$'Bad'
+#positive_pred_poly <- pred_poly_roc$'Bad'
 
-#roc_obj_2 <- roc(test_data$RESPONSE, positive_pred_radial)
+#roc_obj_2 <- roc(test_data$RESPONSE, pred_lin_roc)
 #plot(roc_obj_2)
 ```
 Comparing prediction accuracies (resampling the models):
@@ -922,10 +922,18 @@ print(gbm_model)
 # Make predictions on the test dataset
 predictions_gbm <- predict(gbm_model, test_data)
 
+
 # Evaluate the model using a confusion matrix
 cm_gbm <- confusionMatrix(predictions_gbm, test_data$RESPONSE)
 print(cm_gbm)
 
+predicted_probs <- predict(gbm_model, newdata = test_data, type = "prob")[,2]
+
+# Create the ROC curve
+roc_obj <- roc(test_data$RESPONSE, predicted_probs)
+
+# Plot the ROC curve
+plot(roc_obj, main="ROC Curve for the Gradient Boosting Model")
 ```
 
 ## Extreme Gradiant Boosting (XGBoost)
@@ -962,6 +970,13 @@ predictions_xgb <- predict(xgb_model, test_data)
 cm_xgb <- confusionMatrix(predictions_xgb, test_data$RESPONSE)
 print(cm_xgb)
 
+predicted_probs <- predict(xgb_model, newdata = test_data, type = "prob")[,2]
+
+# Create the ROC curve
+roc_obj <- roc(test_data$RESPONSE, predicted_probs)
+
+# Plot the ROC curve
+plot(roc_obj, main="ROC Curve for the First XGBoost")
 ```
 
 ```{r, warning=FALSE, message=FALSE}
@@ -994,5 +1009,12 @@ predictions_xgb <- predict(xgb_model, test_data)
 cm_xgb <- confusionMatrix(predictions_xgb, test_data$RESPONSE)
 print(cm_xgb)
 
+predicted_probs <- predict(xgb_model, newdata = test_data, type = "prob")[,2]
+
+# Create the ROC curve
+roc_obj <- roc(test_data$RESPONSE, predicted_probs)
+
+# Plot the ROC curve
+plot(roc_obj, main="ROC Curve for the second XGBoost Model")
 ```
 
