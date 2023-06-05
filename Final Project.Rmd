@@ -328,8 +328,8 @@ logistic_model_auc
 stepwise_model_auc
 
 ```
-<<<<<<< HEAD
- We are going to perform a cross-validation : 
+
+We are going to perform a cross-validation : 
 
 ```{r}
 set.seed(42)
