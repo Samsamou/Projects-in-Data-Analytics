@@ -181,6 +181,41 @@ levels(credit_data$MARITAL_STATUS) <- c("Unknown/Not Specified", "Single", "Divo
 credit_data <- credit_data %>%
   select(-MALE_SINGLE, -MALE_DIV, -MALE_MAR_or_WID, -MARITAL_STATUS, -TELEPHONE, -FOREIGN)
 ```
+Let us combine other variables 
+```{r}
+# Combine purpose of credit variables
+credit_data$CREDIT_PURPOSE <- NA
+credit_data$CREDIT_PURPOSE[credit_data$NEW_CAR == 1] <- "New Car"
+credit_data$CREDIT_PURPOSE[credit_data$USED_CAR == 1] <- "Used Car"
+credit_data$CREDIT_PURPOSE[credit_data$FURNITURE == 1] <- "Furniture"
+credit_data$CREDIT_PURPOSE[credit_data$`RADIO.TV` == 1] <- "Radio.TV"
+credit_data$CREDIT_PURPOSE[credit_data$EDUCATION == 1] <- "Education"
+credit_data$CREDIT_PURPOSE[credit_data$RETRAINING == 1] <- "Retraining"
+credit_data$CREDIT_PURPOSE[is.na(credit_data$CREDIT_PURPOSE)] <- "Other"
+credit_data$CREDIT_PURPOSE <- as.factor(credit_data$CREDIT_PURPOSE)
+
+# Combine housing variables
+credit_data$HOUSING <- NA
+credit_data$HOUSING[credit_data$RENT == 1] <- "Rent"
+credit_data$HOUSING[credit_data$OWN_RES == 1] <- "Own Residence"
+credit_data$HOUSING[is.na(credit_data$HOUSING)] <- "Unknown"
+credit_data$HOUSING <- as.factor(credit_data$HOUSING)
+
+# Combine property ownership variables
+credit_data$PROPERTY_OWNERSHIP <- NA
+credit_data$PROPERTY_OWNERSHIP[credit_data$REAL_ESTATE == 1] <- "Owns Real Estate"
+credit_data$PROPERTY_OWNERSHIP[credit_data$PROP_UNKN_NONE == 1] <- "No Property/Unknown"
+credit_data$PROPERTY_OWNERSHIP[is.na(credit_data$PROPERTY_OWNERSHIP)] <- "Other"
+credit_data$PROPERTY_OWNERSHIP <- as.factor(credit_data$PROPERTY_OWNERSHIP)
+
+#Drop the original columns 
+credit_data <- credit_data %>%
+  select(-c(NEW_CAR, USED_CAR, FURNITURE, `RADIO.TV`, EDUCATION, RETRAINING, RENT, OWN_RES, REAL_ESTATE, PROP_UNKN_NONE))
+
+
+
+
+```
 
 # 4 Perfrom a Linear Regression 
 
