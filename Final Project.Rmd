@@ -226,7 +226,10 @@ credit_data_mod <- credit_data_mod %>%
   select(-OBS., -TELEPHONE, -FOREIGN)
 ```
 
-#5 Logistic regression 
+
+## Modeling
+
+# Logistic regression 
 
 ```{r}
 # Split the data into training and testing sets
@@ -259,7 +262,7 @@ stepwise_model <- step(logistic_model, direction = "both")
 # Summary of the final model
 summary(stepwise_model)
 ```
-
+Here, we will keep the variables that are the most significant so the one with the stars as they are statistically significatif. We
 ```{r}
 set.seed(42)
 
@@ -331,6 +334,7 @@ For the next models, we will use the carret library in order to calculate those.
 ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, verboseIter = FALSE, sampling = "down")
 ```
 ## RANDOM FOREST 
+For this model we are going to train 2 different sub models : one that is normal and another with automatic hyperparameters findings.
 ```{r}
 set.seed(42)
 
@@ -360,7 +364,7 @@ roc_obj_rf <- roc(test_data$RESPONSE, predicted_probs)
 plot(roc_obj_rf, main="ROC Curve for Random Forest Model")
 cat("AUC:", auc(roc_obj_rf), "\n")
 ```
-We let carret choose the optimals parameters. 
+We let carret choose the optimals parameters with grid.  
 ```{r}
 # Define the search grid for hyperparameters
 set.seed(42)
@@ -411,6 +415,8 @@ Usefull for later
 ```{r}
 print(varImp(rf_model))
 ```
+We have better results overall and better AUC for our model without the hyperparameter tweek. 
+
 ## LDA/QDA
 
 ```{r}
@@ -473,12 +479,14 @@ lines.roc(roc_obj_qda, percent=TRUE, col="red")
 
 # Add legend
 legend("bottomright", legend=c("LDA", "QDA"), col=c("blue", "red"), lwd=2)
-cat("AUC:", auc(roc_obj_lda), "\n")
-cat("AUC:", auc(roc_obj_qda), "\n")
-
+cat("AUC LDA:", auc(roc_obj_lda), "\n")
+cat("AUC QDA:", auc(roc_obj_qda), "\n")
 ```
-## CART
 
+Even if we have the same accuracy, QDA is way better for our data because of its high sensitivity compared to LDA. It make sense since it does not take into account the covariance and the linearity. 
+
+## CART
+We will consider 2 submodels : 1 normal and 1 with a pruned tree that will increase accuracy.
 ```{r}
 # Train the CART model using caret
  set.seed(42)
@@ -497,12 +505,13 @@ cm_cart <- confusionMatrix(predictions_cart, test_data$RESPONSE)
 print(cm_cart)
 ```
 As the output shows, the model is a very simple tree with only one split. It suggests that only one variable (CHK_ACCT) is being used to predict the outcome.
+
 Lets display the tree : 
 ```{r}
 # Create the plot
 rpart.plot(cart_model$finalModel, roundint = FALSE, fallen.leaves = TRUE, type = 3)
 ```
-
+Very basic tree with only 2 variables -> might not be optimal since we have 10 variables
 ```{r}
 var_imp <- varImp(cart_model)
 print(var_imp)
@@ -547,18 +556,19 @@ print(cm_cart_grid)
 
 ```
 
+Let's display the tree :
 ```{r}
 # Create the plot
 rpart.plot(cart_model_grid$finalModel, roundint = FALSE, fallen.leaves = TRUE, type = 3)
-
 ```
+Better model than before since it is more complexe and has more nods. 
 
-Here the tree
+
 ```{r}
 var_imp <- varImp(cart_model_grid)
 print(var_imp)
 ```
-
+The pruned tree has better accuracy but is not predicting very well the bad customers which is a problem in our case but is more complex as a tree. This last reason is why we feel more comfortable choosing this model rather than the other one even if the metric are worse for the pruned tree.
 
 ## Neural Network
 ```{r}
