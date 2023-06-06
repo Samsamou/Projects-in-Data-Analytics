@@ -276,6 +276,14 @@ summary(stepwise_model)
 
 Here, we will keep the variables that are the most significant so the one with the stars as they are statistically significant.
 
+Let's see if the variables have multicollinearity:
+
+```{r}
+vif_model <- vif(stepwise_model)
+print(vif_model)
+```
+As we can see, all the values are under `under 5` so there is no multicollinearity problem.
+
 ```{r}
 set.seed(42)
 
@@ -432,7 +440,8 @@ tuned_roc_obj_rf <- roc(test_data$RESPONSE, tuned_predicted_probs)
 plot(tuned_roc_obj_rf, main="ROC Curve for Random Forest Model")
 cat("AUC:", auc(tuned_roc_obj_rf), "\n")
 ```
-Usefull for later 
+You can see the importance of each variable in the model. As we can see, the type car isn't as useful to predict the risk of a person as duration is.
+
 ```{r}
 print(varImp(rf_model))
 ```
