@@ -1,8 +1,12 @@
 ---
 title: "German Bank Credit Homework"
 author: "Alexander Liden & Samy Maurer"
-date: "2023-04-09"
-output: html_document
+date: "2023-06-06"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -36,14 +40,15 @@ cl <- makeCluster(detectCores())
 registerDoParallel(cl)
 ```
 
-# 1 Introduction 
+# Introduction 
 
-In the context of our course in Project in Data Analytics for Decision Making, we will perform an complete analysis of the dataset GermanCredit.csv that we will rename later "Bank Credit". First of all, we will try to understand every variable of this dataset and its trend by using multiple statistical tools. Secondly, we will 
+In the context of our course in Project in Data Analytics for Decision Making, we will perform an complete analysis of the dataset `GermanCredit.csv` that we will rename later "Bank Credit". First of all, we will try to understand every variable of this dataset and its trend by using multiple statistical tools. Secondly, we will 
 
-# 2 Exploring the Data
+# Exploring the Data
 
 First of all lets call our data check for fundamentals such as : 
-```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+```{r}
 credit_data <- read.csv("GermanCredit.csv", sep = ";")
 # Check number of rows and columns
 n_rows <- nrow(credit_data)
@@ -55,6 +60,7 @@ cat("Number of columns: ", n_cols, "\n\n")
 str(credit_data)
 cat("\n")
 ```
+
 We observe that the data contains 1000 observations which are here obviously clients. For every client we have 32 integrere variables listed down below:
 `OBS#`, `CHK_ACCT`, `DURATION`, `HISTORY`, `NEW_CAR`,
     `USED_CAR`, `FURNITURE`, `RADIO/TV`, `EDUCATION`,
@@ -67,7 +73,8 @@ We observe that the data contains 1000 observations which are here obviously cli
     `FOREIGN`, `RESPONSE`
     
 Lets check how many binary variable we have 
-```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+```{r}
 # create a function to identify binary variables
 is_binary <- function(x) {
   if(is.numeric(x)) {
@@ -86,18 +93,20 @@ binary_vars
 ```
 We can observe that this table contains out of 32 variables, 12 binary ones which are identified as TRUE in right up. 
 
-Let's check for missing values
-```{r echo=FALSE, warning=FALSE, message=FALSE}
+Let's check for missing values:
+
+```{r}
 # Check for missing values
 cat("Missing values:\n")
 sapply(credit_data, function(x) sum(is.na(x)))
 cat("\n")
 ```
 There is a problem with `AGE` : There are 14 missing values in this variable which leads us to a question : 
-Should we deleate the observations with missing values or should we deal with it in a different manner ? 
+Should we delete the observations with missing values or should we deal with it in a different manner ? 
 
 Let us see the ones with the missing information about the age. 
-```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+```{r}
 # identify rows with missing values
 missing_rows <- credit_data[is.na(credit_data$AGE),]
 
@@ -106,10 +115,11 @@ kable(missing_rows)
 ```
 
 Lets have a overall idea of our data : 
-```{r echo=FALSE, warning=FALSE, message=FALSE}
+```{r}
 # General Summary
 summary(credit_data)
 ```
+
 Thanks to our summary variable we observe 2 other problem : 
 - `MAKE_SINGLE` is a binary variable but has a maximum value of 2
 - `GUARANTOR` is a binary variable but has a minimum value of -1 
@@ -118,16 +128,18 @@ How would we modify those values ?
 
 
 Let us now make a frequency histogram
-```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+```{r}
 #Histogram of frequency for every variable 
 par(mfrow=c(3,3)) # set up the layout of the plots
 for (i in 1:32) {
   hist(credit_data[,i], main=colnames(credit_data)[i], xlab="", col="lightblue")
 }
 ```
-Those frequency histogram confirms us the problems with had earlier with our 2 variables `MAKE_SINGLE`and `GUARANTOR`. 
 
-So what to do ? As the missing/wrong values appears a few time in our dataset, we want to drop them and check if everything is alright now
+Those frequency histograms confirm us the problems with had earlier with our 2 variables `MAKE_SINGLE`and `GUARANTOR`. 
+
+So what to do ? As the missing/wrong values appears a few time in our dataset, we want to drop them and check if everything is alright now.
 
 ```{r}
 # Drop rows with missing values in AGE
@@ -150,10 +162,9 @@ kable(summary(credit_data))
 
 Everything is fine now
 
-
 We do a correlation plot in order to find some correlation between our variables. 
 
-```{r echo=FALSE, warning=FALSE, message=FALSE}
+```{r}
 # Select all columns except OBS
 cols <- names(credit_data)[-1]
 
@@ -166,7 +177,7 @@ ggcorrplot(corr_mat, hc.order = TRUE, type = "upper", outline.col = "white")
 
 There is no clear correlation between those variables
 
-# 3 Proposition to modify the data 
+# Proposition to modify the data 
 
 One option could be to create a new variable called `MARITAL_STATUS` that combines the information from the `MALE_SINGLE`, `MALE_DIV`, and `MALE_MAR_WID` variables. For example, if all three variables are 0, then the `MARITAL_STATUS` variable could be "unknown" or "not specified." Alternatively, if only one of the three variables is 1, then the `MARITAL_STATUS` variable could be set to "single", "divorced" or "married/widowed" accordingly.
 
@@ -227,9 +238,9 @@ credit_data_mod <- credit_data_mod %>%
 ```
 
 
-## Modeling
+# Modeling
 
-# Logistic regression 
+## Logistic regression 
 
 ```{r}
 # Split the data into training and testing sets
@@ -262,7 +273,9 @@ stepwise_model <- step(logistic_model, direction = "both")
 # Summary of the final model
 summary(stepwise_model)
 ```
-Here, we will keep the variables that are the most significant so the one with the stars as they are statistically significatif. We
+
+Here, we will keep the variables that are the most significant so the one with the stars as they are statistically significant.
+
 ```{r}
 set.seed(42)
 
@@ -283,10 +296,10 @@ cat("Sensitivity:", sensitivity, "\n")
 specificity <- confusion_matrix[1, 1] / sum(confusion_matrix[, 1])
 cat("Specifity:", specificity, "\n")
 ```
-In this case, the model is of course simple so we have a pretty low specificity. That means that we are predicting bad customers pretty poorly
-
+In this case, the model is of course simple so we have a pretty low specificity. That means that we are predicting bad customers pretty poorly.
 
 We are computing now the AUC for the 2 models : 
+
 ```{r}
 set.seed(42)
 
@@ -299,7 +312,10 @@ roc_obj <- roc(test_data$RESPONSE, test_probs)
 plot(roc_obj, main="ROC Curve for Logistic Model")
 cat("AUC:", auc(roc_obj), "\n")
 ```
+It is clear we cannot choose this model because the specificity (here the values swapped but it is equal to the sensitivity in the rest of the project) is too low.
+
 Based on the Logistic Regression, we will keep those variables which have the most significance for our model. 
+
 ```{r}
 #Let's drop the columns we don't need
 credit_data <- credit_data %>%
@@ -328,13 +344,17 @@ levels(test_data$RESPONSE) <- c("Bad", "Good")
 ```
 
 
-For the next models, we will use the carret library in order to calculate those. We choose some paramaters that will remain constant for the models : 
+For the next models, we will use the caret library in order to calculate those. We choose some parameters that will remain constant for the models : 
+
 ```{r}
 # Set up the trainControl object
 ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, verboseIter = FALSE, sampling = "down")
 ```
-## RANDOM FOREST 
-For this model we are going to train 2 different sub models : one that is normal and another with automatic hyperparameters findings.
+
+## Random Forests 
+
+For this model we are going to train 2 different sub models : one that is normal and another with automatic hyper parameters findings.
+
 ```{r}
 set.seed(42)
 
@@ -364,7 +384,8 @@ roc_obj_rf <- roc(test_data$RESPONSE, predicted_probs)
 plot(roc_obj_rf, main="ROC Curve for Random Forest Model")
 cat("AUC:", auc(roc_obj_rf), "\n")
 ```
-We let carret choose the optimals parameters with grid.  
+We let caret choose the optimal parameters with grid.  
+
 ```{r}
 # Define the search grid for hyperparameters
 set.seed(42)
@@ -415,6 +436,7 @@ Usefull for later
 ```{r}
 print(varImp(rf_model))
 ```
+
 We have better results overall and better AUC for our model without the hyperparameter tweek. 
 
 ## LDA/QDA
@@ -464,7 +486,7 @@ print(cm_qda)
 varImp(qda_model)
 ```
 
-```{r}
+```{r, warning=FALSE}
 # Make probability predictions
 lda_prob_preds <- predict(lda_model, test_data, type = "prob")[,2]
 qda_prob_preds <- predict(qda_model, test_data, type = "prob")[,2]
@@ -486,7 +508,9 @@ cat("AUC QDA:", auc(roc_obj_qda), "\n")
 Even if we have the same accuracy, QDA is way better for our data because of its high sensitivity compared to LDA. It make sense since it does not take into account the covariance and the linearity. 
 
 ## CART
+
 We will consider 2 submodels : 1 normal and 1 with a pruned tree that will increase accuracy.
+
 ```{r}
 # Train the CART model using caret
  set.seed(42)
@@ -495,8 +519,8 @@ cart_model <- train(RESPONSE ~ ., data = train_data, method = "rpart", trControl
 
 # Print the model
 print(cart_model)
-summary(cart_model)
-# 
+#summary(cart_model)
+ 
 # Make predictions on the test dataset
 predictions_cart <- predict(cart_model, test_data)
 
@@ -504,20 +528,24 @@ predictions_cart <- predict(cart_model, test_data)
 cm_cart <- confusionMatrix(predictions_cart, test_data$RESPONSE)
 print(cm_cart)
 ```
+
 As the output shows, the model is a very simple tree with only one split. It suggests that only one variable (CHK_ACCT) is being used to predict the outcome.
 
 Lets display the tree : 
+
 ```{r}
 # Create the plot
 rpart.plot(cart_model$finalModel, roundint = FALSE, fallen.leaves = TRUE, type = 3)
 ```
-Very basic tree with only 2 variables -> might not be optimal since we have 10 variables
+
+Very basic tree with only 2 variables -> might not be optimal since we have 10 variables.
+
 ```{r}
 var_imp <- varImp(cart_model)
 print(var_imp)
 ```
 
-```{r}
+```{r, warning=FALSE}
 library(pROC)
 set.seed(42)
 
@@ -529,8 +557,11 @@ predictions_cart_probs <- predict(cart_model, test_data, type = "prob")
 positive_class_probs <- predictions_cart_probs$'Bad'
 roc_obj <- roc(test_data$RESPONSE, positive_class_probs)
 plot(roc_obj)
+cat("AUC CART:", auc(roc_obj), "\n")
 ```
+
 Let's tweak the complexitiy parameter by pruning the tree. 
+
 ```{r}
 # Define a grid of cp values
 cp_grid <- expand.grid(.cp = seq(0.01, 0.5, 0.01))
@@ -545,7 +576,7 @@ cart_model_grid <- train(RESPONSE ~ .,
 
 # Print the model
 print(cart_model_grid)
-summary(cart_model_grid)
+#summary(cart_model_grid)
 
 # Make predictions on the test dataset
 predictions_cart_grid <- predict(cart_model_grid, test_data)
@@ -557,6 +588,7 @@ print(cm_cart_grid)
 ```
 
 Let's display the tree :
+
 ```{r}
 # Create the plot
 rpart.plot(cart_model_grid$finalModel, roundint = FALSE, fallen.leaves = TRUE, type = 3)
@@ -598,12 +630,13 @@ predicted_probs <- predict(nn_model, newdata = test_data, type = "prob")[,2]
 roc_obj <- roc(test_data$RESPONSE, predicted_probs)
 # Plot the ROC curve
 plot(roc_obj, main="ROC Curve for the first neural network")
+cat("AUC First Neural Network:", auc(roc_obj), "\n")
 varImp(nn_model)
 
 ```
 
 
-As we can see, the accuracy of the model is mediocre at best. With 0.71, and a sensitivity of 0.62, the model is essentially tossing a coin-flip for every bad client. Furthermore, we can see that Caret chose bootstrapping instead of cross-validation, so let's try it in the next model:
+As we can see, the accuracy of the model is mediocre at best. With `0.71`, and a sensitivity of `0.63`, the model is essentially tossing a coin-flip for every bad client. Furthermore, we can see that Caret chose bootstrapping instead of cross-validation, so let's try it in the next model:
 
 ```{r, warning=FALSE}
 source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
@@ -641,6 +674,7 @@ predicted_probs <- predict(nn_model, newdata = test_data, type = "prob")[,2]
 roc_obj <- roc(test_data$RESPONSE, predicted_probs)
 # Plot the ROC curve
 plot(roc_obj, main="ROC Curve for the second neural network")
+cat("AUC Second Neural Network:", auc(roc_obj), "\n")
 varImp(nn_model)
 
 ```
@@ -692,8 +726,9 @@ roc_obj <- roc(test_data$RESPONSE, predicted_probs)
 # Plot the ROC curve
 plot(roc_obj, main="ROC Curve for the third neural network")
 varImp(nn_model)
+cat("AUC Neural Network final:", auc(roc_obj), "\n")
 ```
-And we can see that the sensitivity reduced from `64%` to `66%`, but the accuracy is slightly better from `70%` to `71%` which is what we want to see, even though the difference is marginal at best.
+And we can see that the sensitivity reduced from `64%` to `66%`, but the accuracy is slightly better from `70%` to `71%` which is what we want to see, even though the difference is marginal at best and other models will perform better.
 
 ```{r, warning=FALSE}
 source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
@@ -702,13 +737,15 @@ plot(nn_model)
 plot.nnet(nn_model)
 ```
 As we can see from the 3 neural networks, the last one is significantly more complex than the others and it shows in the accuracy department, where our focus lies at the moment.
-From the 3 model, the last one also shows a Kappa slightly higher than the other ones but the difference is not significant in our eyes. The lack of further improvement may be caused of the lack of further predictor variables. It is known that Neural Networks love predictors because they can adjust their weights with more precision.
 
-We could be creating another hidden layer, but the difference will not be significant.
+From the 3 models, the last one also shows a Kappa slightly higher than the other ones but the difference is not significant in our eyes. The lack of further improvement may be caused of the lack of further predictor variables. It is known that Neural Networks love predictors because they can adjust their weights with more precision.
+
+We could be creating another model with more hidden layers, but the difference will not be significant.
 
 ## Support vector (SVM)
 
 Linear model:
+
 ```{r}
 set.seed(42)
 
@@ -732,8 +769,8 @@ print(cm_svm_lin)
 varImp(svm_model_lin)
 
 ```
+Let's try the Radial model: 
 
-Let's try the non-linear model: 
 ```{r}
 set.seed(42)
 
@@ -761,8 +798,8 @@ plot(svm_model_radial)
 varImp(svm_model_radial)
 
 ```
-
 Now let's try the polynomial kernel basis:
+
 ```{r}
 set.seed(42)
 
@@ -801,7 +838,7 @@ resample_results <- resamples(models) # resample the models
 summary(resample_results, metric=c("Kappa", "Accuracy")) # generate a summary
 bwplot(resample_results , metric=c("Kappa","Accuracy")) # create a boxplot 
 ```
-As we can see from these results, the Polynomial and Radial SVMs are quite similar accuracy-wise, making the Linear model fall behind with a bigger boxplot. This may be caused because the Linear model does not fit the data well because of the lack of possible curvature. On the other hand, looking at the Kappas, the whiskers of the Polynomial are larger than the Radial. The latter also has a Extreme Value at around 0.59, but the overall Kappa is less high than than the Polynomial. Based on these factors, we would will choose the Radial model as the best here.
+As we can see from these results, the Polynomial and Radial SVMs are quite similar accuracy-wise, making the Linear model fall behind with a bigger boxplot. This may be caused because the Linear model does not fit the data well because of the lack of possible curvature. On the other hand, looking at the Kappas, the whiskers of the Polynomial are larger than the Radial. The latter also has a Extreme Value at around `0.59`, but the overall Kappa is less high than than the Polynomial. Based on these factors, we would will declare the `Radial` model as the best here.
 
 ## Gradient Boosting
 
@@ -836,10 +873,9 @@ plot(roc_obj_gbm, main="ROC Curve for the Gradient Boosting Model")
 varImp(gbm_model)
 ```
 
-
 ### Extreme Gradiant Boosting (XGBoost)
 
-Default parameters:
+This model is the `surprise model` we got. Here is the model with default parameters:
 
 ```{r}
 set.seed(42)
@@ -928,16 +964,32 @@ lines.roc(roc_obj_gbm, percent=TRUE, col="red")
 
 # Add legend
 legend("bottomright", legend=c("XGBoost", "Gradient Boosting"), col=c("blue", "red"), lwd=2)
+cat("AUC XGBoost:", auc(roc_obj_xgboost), "\n")
+cat("AUC GBM:", auc(roc_obj_gbm), "\n")
 ```
-## Conclusion
+Now, comparing the XGBoost and the 'normal' GBM, we can see that the XGBoost is better overall when looking at the ROC Curves. It also has a better sensitivity, which is crucial for our analysis. The overall improvement can be explained because it offers more tuning capabilities than the GBM, therefore ensuring a more substantial fit. However, was inferior in the sense that it ran approximatively 20x longer than the normal GBM, and this is a key parameter to keep in mind because our number of predictors were actually pretty low overall.
+
+# Conclusion
 
 After this analysis of all the models we had at our disposition, what are the main takeaways?
-1. Every model shown here almost has the same Accuracy and Kappa values, which means that they behave almost the same way
-2. But if we follow the scientific approach, we would use the `Random Forest with automatic parameters` because of its highest Kappa, Accuracy, and Sensitivity.
 
-## Limitations and further improvements
+1. Every model shown here almost has the same Accuracy and Kappa values, which means that they behave almost the same way.
+
+2. But if we follow the scientific approach, we would use the `Random Forest with automatic parameters` because of its highest Sensitivity combined with one of the highest accuracies of all the models.
+
+3. Based on the above-mentioned model, the most important variables are `DURATION`, `CHK_ACCT`, and `HISTORY`. The least useful variables are the ones talking about `cars`.
+
+4. Now that we have established the variables needed for the model, the bank clerks will need less information on the customer to make the decision to accord the credit or not.
+
+5. In this current state, you can see that the models resemble each other a whole lot. This is important to continually train the models with fresh data to see if the fit will be better with another model.
+
+
+
+# Limitations and further improvements
 
 The limitations of this project are not significant, but here is a list of how we would change the methodology if we had to make the project from scratch:
 1. Identify meaningful variables for each model separately, instead of choosing them deliberately at the beginning after the Logistic Regression model. This could greatly improve the models accuracy, especially for more complex models such as neural networks, SVMs, Boosting and so on.
+
 2. The use of a more balanced dataset. Even though we used the down sampling method for each model, a more balanced dataset would have meant a more data to work with when dealing with bad clients.
-3. We would make the analysis with multiple seeds and take averages for each model. 
+
+3. We would make the analysis with multiple seeds and take averages for each model to see if their performance is influenced by a certain seed or not.
