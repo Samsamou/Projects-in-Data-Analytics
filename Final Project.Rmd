@@ -127,7 +127,7 @@ for (i in 1:32) {
 ```
 Those frequency histogram confirms us the problems with had earlier with our 2 variables `MAKE_SINGLE`and `GUARANTOR`. 
 
-So what to do ? As the missing/wrond values appears a few time in our dataset, we want to drop them and check if everything is alright now
+So what to do ? As the missing/wrong values appears a few time in our dataset, we want to drop them and check if everything is alright now
 
 ```{r}
 # Drop rows with missing values in AGE
@@ -164,6 +164,8 @@ corr_mat <- cor(credit_data[, cols], use="complete.obs")
 ggcorrplot(corr_mat, hc.order = TRUE, type = "upper", outline.col = "white")
 ```
 
+There is no clear correlation between those variables
+
 # 3 Proposition to modify the data 
 
 One option could be to create a new variable called `MARITAL_STATUS` that combines the information from the `MALE_SINGLE`, `MALE_DIV`, and `MALE_MAR_WID` variables. For example, if all three variables are 0, then the `MARITAL_STATUS` variable could be "unknown" or "not specified." Alternatively, if only one of the three variables is 1, then the `MARITAL_STATUS` variable could be set to "single", "divorced" or "married/widowed" accordingly.
@@ -178,44 +180,50 @@ credit_data$MARITAL_STATUS <- as.factor(credit_data$MARITAL_STATUS)
 levels(credit_data$MARITAL_STATUS) <- c("Unknown/Not Specified", "Single", "Divorced", "Married/Widowed")
 
 #Drop the columns 
-credit_data <- credit_data %>%
-  select(-MALE_SINGLE, -MALE_DIV, -MALE_MAR_or_WID, -MARITAL_STATUS, -OBS., -TELEPHONE, -FOREIGN)
+credit_data_mod <- credit_data %>%
+  select(-MALE_SINGLE, -MALE_DIV, -MALE_MAR_or_WID)
 ```
 
 Let us combine other variables 
-```{r eval=FALSE, include=FALSE}
+```{r}
 # Combine purpose of credit variables
-credit_data$CREDIT_PURPOSE <- NA
-credit_data$CREDIT_PURPOSE[credit_data$NEW_CAR == 1] <- "New Car"
-credit_data$CREDIT_PURPOSE[credit_data$USED_CAR == 1] <- "Used Car"
-credit_data$CREDIT_PURPOSE[credit_data$FURNITURE == 1] <- "Furniture"
-credit_data$CREDIT_PURPOSE[credit_data$`RADIO.TV` == 1] <- "Radio.TV"
-credit_data$CREDIT_PURPOSE[credit_data$EDUCATION == 1] <- "Education"
-credit_data$CREDIT_PURPOSE[credit_data$RETRAINING == 1] <- "Retraining"
-credit_data$CREDIT_PURPOSE[is.na(credit_data$CREDIT_PURPOSE)] <- "Other"
-credit_data$CREDIT_PURPOSE <- as.factor(credit_data$CREDIT_PURPOSE)
+credit_data_mod$CREDIT_PURPOSE <- NA
+credit_data_mod$CREDIT_PURPOSE[credit_data_mod$NEW_CAR == 1] <- "New Car"
+credit_data_mod$CREDIT_PURPOSE[credit_data_mod$USED_CAR == 1] <- "Used Car"
+credit_data_mod$CREDIT_PURPOSE[credit_data_mod$FURNITURE == 1] <- "Furniture"
+credit_data_mod$CREDIT_PURPOSE[credit_data_mod$`RADIO.TV` == 1] <- "Radio.TV"
+credit_data_mod$CREDIT_PURPOSE[credit_data_mod$EDUCATION == 1] <- "Education"
+credit_data_mod$CREDIT_PURPOSE[credit_data_mod$RETRAINING == 1] <- "Retraining"
+credit_data_mod$CREDIT_PURPOSE[is.na(credit_data_mod$CREDIT_PURPOSE)] <- "Other"
+credit_data_mod$CREDIT_PURPOSE <- as.factor(credit_data_mod$CREDIT_PURPOSE)
 
 # Combine housing variables
-credit_data$HOUSING <- NA
-credit_data$HOUSING[credit_data$RENT == 1] <- "Rent"
-credit_data$HOUSING[credit_data$OWN_RES == 1] <- "Own Residence"
-credit_data$HOUSING[is.na(credit_data$HOUSING)] <- "Unknown"
-credit_data$HOUSING <- as.factor(credit_data$HOUSING)
+credit_data_mod$HOUSING <- NA
+credit_data_mod$HOUSING[credit_data_mod$RENT == 1] <- "Rent"
+credit_data_mod$HOUSING[credit_data_mod$OWN_RES == 1] <- "Own Residence"
+credit_data_mod$HOUSING[is.na(credit_data_mod$HOUSING)] <- "Unknown"
+credit_data_mod$HOUSING <- as.factor(credit_data_mod$HOUSING)
 
 # Combine property ownership variables
-credit_data$PROPERTY_OWNERSHIP <- NA
-credit_data$PROPERTY_OWNERSHIP[credit_data$REAL_ESTATE == 1] <- "Owns Real Estate"
-credit_data$PROPERTY_OWNERSHIP[credit_data$PROP_UNKN_NONE == 1] <- "No Property/Unknown"
-credit_data$PROPERTY_OWNERSHIP[is.na(credit_data$PROPERTY_OWNERSHIP)] <- "Other"
-credit_data$PROPERTY_OWNERSHIP <- as.factor(credit_data$PROPERTY_OWNERSHIP)
+credit_data_mod$PROPERTY_OWNERSHIP <- NA
+credit_data_mod$PROPERTY_OWNERSHIP[credit_data_mod$REAL_ESTATE == 1] <- "Owns Real Estate"
+credit_data_mod$PROPERTY_OWNERSHIP[credit_data_mod$PROP_UNKN_NONE == 1] <- "No Property/Unknown"
+credit_data_mod$PROPERTY_OWNERSHIP[is.na(credit_data_mod$PROPERTY_OWNERSHIP)] <- "Other"
+credit_data_mod$PROPERTY_OWNERSHIP <- as.factor(credit_data_mod$PROPERTY_OWNERSHIP)
 
 #Drop the original columns 
-credit_data <- credit_data %>%
+credit_data_mod <- credit_data_mod %>%
   select(-c(NEW_CAR, USED_CAR, FURNITURE, `RADIO.TV`, EDUCATION, RETRAINING, RENT, OWN_RES, REAL_ESTATE, PROP_UNKN_NONE))
+```
 
+We are going to drop some variables. 
+- OBS is a variable that does not make sense to use for our logistic regression.
+- Foreign is a discriminant variable that is not usable in Europe.
+- Telephone is a veraible that a techincally legally isues to be used.
 
-
-
+```{r}
+credit_data_mod <- credit_data_mod %>%
+  select(-OBS., -TELEPHONE, -FOREIGN)
 ```
 
 #5 Logistic regression 
@@ -223,9 +231,9 @@ credit_data <- credit_data %>%
 ```{r}
 # Split the data into training and testing sets
 set.seed(42)
-split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
-train_data <- credit_data[split, ]
-test_data <- credit_data[!split, ]
+split <- sample.split(credit_data_mod$RESPONSE, SplitRatio = 0.7)
+train_data <- credit_data_mod[split, ]
+test_data <- credit_data_mod[!split, ]
 
 # Fit the logistic regression model
 logistic_model <- glm(RESPONSE ~ ., data = train_data, family = "binomial")
@@ -272,31 +280,8 @@ cat("Sensitivity:", sensitivity, "\n")
 specificity <- confusion_matrix[1, 1] / sum(confusion_matrix[, 1])
 cat("Specifity:", specificity, "\n")
 ```
+In this case, the model is of course simple so we have a pretty low specificity. That means that we are predicting bad customers pretty poorly
 
-```{r eval=FALSE, include=FALSE}
-# Perform stepwise regression with cross validation
-# Convert RESPONSE to a factor and adjust the levels
-train_data$RESPONSE <- as.factor(train_data$RESPONSE)
-levels(train_data$RESPONSE) <- c("Bad", "Good")
-
-test_data$RESPONSE <- as.factor(test_data$RESPONSE)
-levels(test_data$RESPONSE) <- c("Bad", "Good")
-stepwise_model_cv <- train(RESPONSE ~ ., data = train_data, method = "glmStepAIC", 
-                           trControl = ctrl, 
-                           family = binomial(link = "logit"), 
-                           direction = "both", 
-                           tuneLength = 10)
-
-# Summary of the final model
-summary(stepwise_model_cv)
-# Predict on the test data
-test_probs_cv <- predict(stepwise_model_cv, newdata = test_data, type = "prob")[,2]
-test_preds_cv <- ifelse(test_probs_cv > 0.5, 1, 0)
-
-# Calculate accuracy
-confusion_matrix_cv <- table(Predicted = test_preds_cv, Actual = test_data$RESPONSE)
-print(confusion_matrix_cv)
-```
 
 We are computing now the AUC for the 2 models : 
 ```{r}
@@ -309,8 +294,9 @@ roc_obj <- roc(test_data$RESPONSE, test_probs)
 
 # Plot ROC curve
 plot(roc_obj, main="ROC Curve for Logistic Model")
+cat("AUC:", auc(roc_obj), "\n")
 ```
- 
+Based on the Logistic Regression, we will keep those variables which have the most significance for our model. 
 ```{r}
 #Let's drop the columns we don't need
 credit_data <- credit_data %>%
@@ -320,6 +306,7 @@ credit_data <- credit_data %>%
 
 head(credit_data)
 ```
+
 ```{r}
 #New training/test set 
 split <- sample.split(credit_data$RESPONSE, SplitRatio = 0.7)
@@ -328,7 +315,7 @@ test_data <- credit_data[!split, ]
 ```
 
 ```{r}
-# Convert RESPONSE to a factor and adjust the levels
+# Convert RESPONSE to a factor and adjust the levels for our next models
 train_data$RESPONSE <- as.factor(train_data$RESPONSE)
 levels(train_data$RESPONSE) <- c("Bad", "Good")
 
@@ -337,12 +324,15 @@ levels(test_data$RESPONSE) <- c("Bad", "Good")
 
 ```
 
+
+For the next models, we will use the carret library in order to calculate those. We choose some paramaters that will remain constant for the models : 
+```{r}
+# Set up the trainControl object
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, verboseIter = FALSE, sampling = "down")
+```
 ## RANDOM FOREST 
 ```{r}
 set.seed(42)
-
-# Set up the trainControl object
-ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10, verboseIter = FALSE, sampling = "down")
 
 # Train the random forest model using caret
  
@@ -364,12 +354,13 @@ print(cm)
 predicted_probs <- predict(rf_model, newdata = test_data, type = "prob")[,2]
 
 # Create the ROC curve
-roc_obj <- roc(test_data$RESPONSE, predicted_probs)
+roc_obj_rf <- roc(test_data$RESPONSE, predicted_probs)
 
 # Plot the ROC curve
-plot(roc_obj, main="ROC Curve for Random Forest Model")
+plot(roc_obj_rf, main="ROC Curve for Random Forest Model")
+cat("AUC:", auc(roc_obj_rf), "\n")
 ```
-Ici on prends des hyperparameters pour trouver les meilleurs
+We let carret choose the optimals parameters. 
 ```{r}
 # Define the search grid for hyperparameters
 set.seed(42)
@@ -404,58 +395,23 @@ predictions <- predict(best_rf_model, test_data)
 cm <- confusionMatrix(predictions, test_data$RESPONSE)
 print(cm)
 ```
+
 ```{r}
 # Compute the predicted probabilities of the positive class
 tuned_predicted_probs <- predict(tuned_rf_model, newdata = test_data, type = "prob")[,2]
 
 # Create the ROC curve
-tuned_roc_obj <- roc(test_data$RESPONSE, tuned_predicted_probs)
+tuned_roc_obj_rf <- roc(test_data$RESPONSE, tuned_predicted_probs)
 
 # Plot the ROC curve
-plot(tuned_roc_obj, main="ROC Curve for Random Forest Model")
+plot(tuned_roc_obj_rf, main="ROC Curve for Random Forest Model")
+cat("AUC:", auc(tuned_roc_obj_rf), "\n")
 ```
-
-
-I am gonna try now to adjust the class weight 
-
-```{r}
-set.seed(42)
-
-# Define class weights
-class_weights <- c(2, 1) # 2 for bad customers (class '0') and 1 for good customers (class '1')
-
-# Train the Random Forest model with class weights
-weighted_rf_model <- train(RESPONSE ~ .,
-                           data = train_data,
-                           method = "rf",
-                           metric = "Accuracy",
-                           trControl = train_control,
-                           tuneGrid = tune_grid,
-                           weights = ifelse(train_data$RESPONSE == 'Bad', class_weights[1], class_weights[2]))
-
-# Obtain predicted probabilities for the test dataset
-predicted_prob <- predict(weighted_rf_model, newdata = test_data, type = "prob")
-
-# Define the custom threshold
-threshold <- 0.3
-
-# Classify customers based on the custom threshold
-custom_predictions <- ifelse(predicted_prob[, "Bad"] > threshold, "Bad", "Good")
-
-# Convert custom_predictions to a factor with the same levels as test_data$RESPONSE
-custom_predictions <- factor(custom_predictions, levels = levels(test_data$RESPONSE))
-
-# Evaluate the model using a confusion matrix with custom predictions
-cm_custom <- confusionMatrix(custom_predictions, test_data$RESPONSE)
-print(cm_custom)
-
-
-```
-
+Usefull for later 
 ```{r}
 print(varImp(rf_model))
 ```
-## LDA
+## LDA/QDA
 
 ```{r}
  set.seed(42)
@@ -480,9 +436,6 @@ print(cm_lda)
 ```
 
 
-
-## QDA
-
 ```{r}
 # Train the LDA model with down-sampling
 set.seed(42)
@@ -504,34 +457,6 @@ cm_qda <- confusionMatrix(predictions_qda, test_data$RESPONSE)
 print(cm_qda)
 varImp(qda_model)
 ```
-Lets try to give more weight to bad customers.
-
-```{r}
-set.seed(42)
- 
-# Determine class weights
-class_weights <- ifelse(train_data$RESPONSE == "Bad", 1, 0.5)
-
-# Train the QDA model with class weights
-qda_model <- train(RESPONSE ~ . ,
-                   data = train_data,
-                   method = "qda",
-                   weights = class_weights,
-                   trControl = ctrl)
-
-# Print the model
-print(qda_model)
-
-# Make predictions on the test dataset
-predictions_qda <- predict(qda_model, test_data)
-
-# Evaluate the model using a confusion matrix
-cm_qda <- confusionMatrix(predictions_qda, test_data$RESPONSE)
-print(cm_qda)
-
-
-```
-It did not change anything so we have prolly optimized it.
 
 ```{r}
 # Make probability predictions
@@ -548,6 +473,9 @@ lines.roc(roc_obj_qda, percent=TRUE, col="red")
 
 # Add legend
 legend("bottomright", legend=c("LDA", "QDA"), col=c("blue", "red"), lwd=2)
+cat("AUC:", auc(roc_obj_lda), "\n")
+cat("AUC:", auc(roc_obj_qda), "\n")
+
 ```
 ## CART
 
@@ -625,6 +553,7 @@ rpart.plot(cart_model_grid$finalModel, roundint = FALSE, fallen.leaves = TRUE, t
 
 ```
 
+Here the tree
 ```{r}
 var_imp <- varImp(cart_model_grid)
 print(var_imp)
