@@ -631,8 +631,6 @@ print(var_imp)
 ```
 
 
-
-
 ## Neural Network
 ```{r}
 # Train the 1st NN
@@ -714,7 +712,7 @@ source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a5
 plot(nn_model)
 plot.nnet(nn_model)
 ```
-Better overall accuracy, let's see with manually adjusted parameters:
+Better overall accuracy and sensitivity, so let's see the difference with manually adjusted parameters:
 
 ```{r}
 # Train the 3rd NN
@@ -756,7 +754,7 @@ roc_obj <- roc(test_data$RESPONSE, predicted_probs)
 plot(roc_obj, main="ROC Curve for the third neural network")
 varImp(nn_model)
 ```
-And we can see that the sensitivity reduced from `73%` to `71%`, but the accuracy is slightly better from `68%` to `71%` which is what we want to see.
+And we can see that the sensitivity reduced from `64%` to `66%`, but the accuracy is slightly better from `70%` to `71%` which is what we want to see, even though the difference is marginal at best.
 
 ```{r, warning=FALSE}
 source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
@@ -764,7 +762,10 @@ source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a5
 plot(nn_model)
 plot.nnet(nn_model)
 ```
+As we can see from the 3 neural networks, the last one is significantly more complex than the others and it shows in the accuracy department, where our focus lies at the moment.
+From the 3 model, the last one also shows a Kappa slightly higher than the other ones but the difference is not significant in our eyes. The lack of further improvement may be caused of the lack of further predictor variables. It is known that Neural Networks love predictors because they can adjust their weights with more precision.
 
+We could be creating another hidden layer, but the difference will not be significant.
 
 ## Support vector (SVM)
 
@@ -851,26 +852,6 @@ plot(svm_model_poly)
 varImp(svm_model_poly)
 ```
 
-
-```{r}
-set.seed(42)
-
-# Make predictions on the test dataset with type = "prob"
-#pred_lin_roc <- predict(svm_model_lin, test_data, type = "prob")[,2]
-#pred_radial_roc <- predict(svm_model_radial, test_data, type="prob")[,2]
-#pred_poly_roc <- predict(svm_model_poly, test_data, type = "prob")[,2]
-
-
-# The 'pROC' function expects a numeric vector, so we only need the probabilities for one class. 
-# Let's take the probabilities for the positive class (assuming "0" is your positive class)
-
-#positive_pred_lin <- pred_lin_roc$'Bad'
-#positive_pred_radial<- pred_radial_roc$'Bad'
-#positive_pred_poly <- pred_poly_roc$'Bad'
-
-#roc_obj_2 <- roc(test_data$RESPONSE, pred_lin_roc)
-#plot(roc_obj_2)
-```
 Comparing prediction accuracies (resampling the models):
 
 ```{r}
@@ -881,9 +862,11 @@ resample_results <- resamples(models) # resample the models
 summary(resample_results, metric=c("Kappa", "Accuracy")) # generate a summary
 bwplot(resample_results , metric=c("Kappa","Accuracy")) # create a boxplot 
 ```
+As we can see from these results, the Polynomial and Radial SVMs are quite similar accuracy-wise, making the Linear model fall behind with a bigger boxplot. This may be caused because the Linear model does not fit the data well because of the lack of possible curvature. On the other hand, looking at the Kappas, the whiskers of the Polynomial are larger than the Radial. The latter also has a Extreme Value at around 0.59, but the overall Kappa is less high than than the Polynomial. Based on these factors, we would will choose the Radial model as the best here.
 
+## Gradient Boosting
 
-## Gradient Boosting (GBM)
+### GBM
 ```{r}
 set.seed(42)
 
@@ -914,9 +897,10 @@ plot(roc_obj_gbm, main="ROC Curve for the Gradient Boosting Model")
 varImp(gbm_model)
 ```
 
-## Extreme Gradiant Boosting (XGBoost)
 
-Default params:
+### Extreme Gradiant Boosting (XGBoost)
+
+Default parameters:
 
 ```{r}
 set.seed(42)
@@ -1006,3 +990,15 @@ lines.roc(roc_obj_gbm, percent=TRUE, col="red")
 # Add legend
 legend("bottomright", legend=c("XGBoost", "Gradient Boosting"), col=c("blue", "red"), lwd=2)
 ```
+## Conclusion
+
+After this analysis of all the models we had at our disposition, what are the main takeaways?
+1. Every model shown here almost has the same Accuracy and Kappa values, which means that they behave almost the same way
+2. But if we follow the scientific approach, we would use the `Random Forest with automatic parameters` because of its highest Kappa, Accuracy, and Sensitivity.
+
+## Limitations and further improvements
+
+The limitations of this project are not significant, but here is a list of how we would change the methodology if we had to make the project from scratch:
+1. Identify meaningful variables for each model separately, instead of choosing them deliberately at the beginning after the Logistic Regression model. This could greatly improve the models accuracy, especially for more complex models such as neural networks, SVMs, Boosting and so on.
+2. The use of a more balanced dataset. Even though we used the down sampling method for each model, a more balanced dataset would have meant a more data to work with when dealing with bad clients.
+3. We would make the analysis with multiple seeds and take averages for each model. 
